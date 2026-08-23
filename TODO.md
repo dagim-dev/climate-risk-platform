@@ -504,19 +504,19 @@ git commit -m "ci: add GitHub Actions workflow for backend tests and frontend li
 
 ### Step 22 — Merge v0.1-alpha into `develop` and Tag
 
-- [ ] Push the feature branch:
+- [x] Push the feature branch:
   ```bash
   git push origin setup/project-foundation
   ```
-- [ ] Open a Pull Request on GitHub: `setup/project-foundation` → `develop`
-- [ ] Review the PR diff — confirm all scaffolding files are present and correct
-- [ ] Merge the PR using **"Squash and Merge"** for a clean history
-- [ ] Pull the updated `develop` locally:
+- [x] Open a Pull Request on GitHub: `setup/project-foundation` → `develop`
+- [x] Review the PR diff — confirm all scaffolding files are present and correct
+- [x] Merge the PR using **"Squash and Merge"** for a clean history
+- [x] Pull the updated `develop` locally:
   ```bash
   git checkout develop
   git pull origin develop
   ```
-- [ ] Tag v0.1-alpha:
+- [x] Tag v0.1-alpha:
   ```bash
   git tag -a v0.1-alpha -m "v0.1-alpha: project foundation and infrastructure scaffolding"
   git push origin v0.1-alpha
