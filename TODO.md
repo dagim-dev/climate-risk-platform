@@ -950,14 +950,14 @@ git checkout -b feature/app-layout
 
 ### Step 49 — Build the Global Layout Components
 
-- [ ] Create `frontend/src/components/layout/Header.tsx`:
+- [x] Create `frontend/src/components/layout/Header.tsx`:
   - Platform logo (text placeholder: "ClimateRisk")
   - Navigation links: "Home", "About", "Pricing"
   - "Sign In" button (non-functional placeholder — enabled in v2.0)
-- [ ] Create `frontend/src/components/layout/Footer.tsx`:
+- [x] Create `frontend/src/components/layout/Footer.tsx`:
   - Copyright line
   - Links: Privacy Policy, Terms of Service, Contact
-- [ ] Update `frontend/src/app/layout.tsx` to wrap all pages in the Header/Footer
+- [x] Update `frontend/src/app/layout.tsx` to wrap all pages in the Header/Footer
   ```
   shell
   ```
@@ -966,7 +966,7 @@ git checkout -b feature/app-layout
 
 ### Step 50 — Establish the Design System
 
-- [ ] Update `frontend/tailwind.config.ts` with a custom color palette:
+- [x] Update `frontend/tailwind.config.ts` with a custom color palette:
   ```ts
   theme: {
     extend: {
@@ -985,7 +985,7 @@ git checkout -b feature/app-layout
     }
   }
   ```
-- [ ] Document the palette and usage rules in `docs/design-system.md`
+- [x] Document the palette and usage rules in `docs/design-system.md`
 
 
 
@@ -1012,7 +1012,7 @@ git checkout -b feature/address-search-ui
 
 ### Step 53 — Build the Frontend API Client
 
-- [ ] Create `frontend/src/lib/api-client.ts`:
+- [x] Create `frontend/src/lib/api-client.ts`:
   ```typescript
   const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
@@ -1036,7 +1036,7 @@ git checkout -b feature/address-search-ui
 
 ### Step 54 — Define Frontend TypeScript Types
 
-- [ ] Create `frontend/src/types/risk.ts`:
+- [x] Create `frontend/src/types/risk.ts`:
   ```typescript
   export type Severity = 'Low' | 'Moderate' | 'High' | 'Extreme';
   export type Verdict  = 'Go' | 'Caution' | 'Avoid';
@@ -1067,7 +1067,7 @@ git checkout -b feature/address-search-ui
 
 ### Step 55 — Build the Address Search Component
 
-- [ ] Create `frontend/src/components/ui/AddressSearch.tsx`:
+- [x] Create `frontend/src/components/ui/AddressSearch.tsx`:
   - Text input with placeholder: "Enter a property address (e.g., 123 Main St, Miami, FL)"
   - "Analyze Risk" submit button
   - Loading spinner displayed while the API call is in progress
@@ -1079,7 +1079,7 @@ git checkout -b feature/address-search-ui
 
 ### Step 56 — Build the Landing Page
 
-- [ ] Update `frontend/src/app/page.tsx`:
+- [x] Update `frontend/src/app/page.tsx`:
   - Hero section headline: "Understand Climate Risk Before You Invest"
   - Sub-headline: "Enter any U.S. property address for an instant, data-backed
   climate risk assessment."
@@ -1115,7 +1115,7 @@ git checkout -b feature/risk-dashboard
 
 ### Step 59 — Build the Score Card Component
 
-- [ ] Create `frontend/src/components/dashboard/ScoreCard.tsx`:
+- [x] Create `frontend/src/components/dashboard/ScoreCard.tsx`:
   - Props: `hazard: string`, `icon: string`, `score: number`,
   `severity: Severity`, `factors: string[]`
   - Visual: a horizontal progress bar or arc gauge, 0–100 scale
@@ -1127,7 +1127,7 @@ git checkout -b feature/risk-dashboard
 
 ### Step 60 — Build the Verdict Badge Component
 
-- [ ] Create `frontend/src/components/dashboard/VerdictBadge.tsx`:
+- [x] Create `frontend/src/components/dashboard/VerdictBadge.tsx`:
   - Props: `verdict: Verdict`, `overallScore: number`
   - Large badge: "✅ Go" / "⚠️ Caution" / "🚫 Avoid"
   - Background color matches verdict: green, amber, red
@@ -1138,7 +1138,7 @@ git checkout -b feature/risk-dashboard
 
 ### Step 61 — Build the Loading Skeleton Component
 
-- [ ] Create `frontend/src/components/dashboard/LoadingSkeleton.tsx`:
+- [x] Create `frontend/src/components/dashboard/LoadingSkeleton.tsx`:
   - Mimics the exact layout of the full dashboard (badge + 4 cards)
   - Uses `animate-pulse` Tailwind class for shimmering grey placeholder blocks
   - Displayed while the API response is pending
@@ -1147,7 +1147,7 @@ git checkout -b feature/risk-dashboard
 
 ### Step 62 — Build the Risk Dashboard Component
 
-- [ ] Create `frontend/src/components/dashboard/RiskDashboard.tsx`:
+- [x] Create `frontend/src/components/dashboard/RiskDashboard.tsx`:
   - Props: `report: ClimateRiskReport`
   - Top section: formatted address, date generated
   - `VerdictBadge` displayed prominently
@@ -1161,7 +1161,7 @@ git checkout -b feature/risk-dashboard
 
 ### Step 63 — Wire Everything Together on the Home Page
 
-- [ ] Update `frontend/src/app/page.tsx`:
+- [x] Update `frontend/src/app/page.tsx`:
   - Show `LoadingSkeleton` while the API call is in progress
   - Show `RiskDashboard` when report data is available
   - Show the `AddressSearch` component again below the dashboard so users can
@@ -1192,7 +1192,7 @@ git checkout -b feature/about-pricing-pages
 
 ### Step 66 — Create the About Page
 
-- [ ] Create `frontend/src/app/about/page.tsx`:
+- [x] Create `frontend/src/app/about/page.tsx`:
   - Platform mission statement
   - Data source section: explain NOAA, NASA, FEMA, USGS and what each
   contributes to the risk scores
@@ -1203,7 +1203,7 @@ git checkout -b feature/about-pricing-pages
 
 ### Step 67 — Create the Pricing Page
 
-- [ ] Create `frontend/src/app/pricing/page.tsx`:
+- [x] Create `frontend/src/app/pricing/page.tsx`:
   - Three-column pricing table: Individual ($49/mo), Professional ($99/mo),
   Business ($500–$5,000/mo)
   - Feature comparison rows per tier
@@ -1225,13 +1225,13 @@ git commit -m "feat(frontend): add about and pricing pages with feature comparis
 
 ### Step 69 — Merge v0.3-alpha Features and Tag
 
-- [ ] Push all v0.3-alpha branches to GitHub
-- [ ] Open and merge PRs in this order:
+- [x] Push all v0.3-alpha branches to GitHub
+- [x] Open and merge PRs in this order:
   1. `feature/app-layout` → `develop`
   2. `feature/address-search-ui` → `develop`
   3. `feature/risk-dashboard` → `develop`
   4. `feature/about-pricing-pages` → `develop`
-- [ ] Pull updated `develop` and tag:
+- [x] Pull updated `develop` and tag:
   ```bash
   git checkout develop
   git pull origin develop
@@ -1271,7 +1271,7 @@ git checkout -b feature/ai-risk-summaries
 
 ### Step 71 — Design the AI Summary Prompt
 
-- [ ] Create `backend/app/services/ai/prompt_builder.py`:
+- [x] Create `backend/app/services/ai/prompt_builder.py`:
   - Function takes a `ClimateRiskReport` and builds a system prompt + user prompt
   - The system prompt instructs the model to:
     - Act as a senior climate risk analyst writing for property investors
@@ -1290,7 +1290,7 @@ git checkout -b feature/ai-risk-summaries
 
 ### Step 72 — Build the AI Summary Generation Service
 
-- [ ] Create `backend/app/services/ai/summary_generator.py`:
+- [x] Create `backend/app/services/ai/summary_generator.py`:
   ```python
   from openai import AsyncOpenAI
   from app.core.config import settings
@@ -1319,7 +1319,7 @@ git checkout -b feature/ai-risk-summaries
 
 ### Step 73 — Integrate AI Summary into the `/analyze` Endpoint
 
-- [ ] Update `backend/app/api/v1/endpoints/risk.py`:
+- [x] Update `backend/app/api/v1/endpoints/risk.py`:
   - After `build_risk_report()` returns the report, call
   `generate_risk_summary(report)` and attach the result to `report.ai_summary`
   - Wrap the AI call in a `try/except` so a summary failure does not crash the
@@ -1329,27 +1329,27 @@ git checkout -b feature/ai-risk-summaries
 
 ### Step 74 — Build the AI Summary Frontend Component
 
-- [ ] Create `frontend/src/components/dashboard/AISummary.tsx`:
+- [x] Create `frontend/src/components/dashboard/AISummary.tsx`:
   - Section header: "AI Risk Analysis"
   - "AI-Generated" badge
   - Rendered summary text
   - Disclaimer: "This summary is AI-generated and based on publicly available
   climate data. It does not constitute professional financial or legal advice."
-- [ ] Add `AISummary` to `RiskDashboard.tsx`, displayed below the four score cards
-- [ ] If `ai_summary` is null/undefined, render nothing (graceful degradation)
+- [x] Add `AISummary` to `RiskDashboard.tsx`, displayed below the four score cards
+- [x] If `ai_summary` is null/undefined, render nothing (graceful degradation)
 
 
 
 ### Step 75 — Manually Validate AI Summary Quality
 
-- [ ] Test with at least five diverse U.S. addresses and verify the summaries:
+- [x] Test with at least five diverse U.S. addresses and verify the summaries:
   - Miami Beach, FL — should flag flooding and hurricane as dominant risks
   - Denver, CO — should note low hurricane/flood risk, moderate heat
   - Paradise, CA — should flag extreme wildfire risk
   - Phoenix, AZ — should flag severe heat risk
   - Iowa City, IA — should note riverine flood risk
-- [ ] Log any hallucinations, factual errors, or confusing language
-- [ ] Iterate on the prompt in `prompt_builder.py` until summaries pass manual
+- [x] Log any hallucinations, factual errors, or confusing language
+- [x] Iterate on the prompt in `prompt_builder.py` until summaries pass manual
   ```
   review for all five test cases
   ```

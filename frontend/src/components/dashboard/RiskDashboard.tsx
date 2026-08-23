@@ -1,6 +1,7 @@
 "use client";
 
 import type { ClimateRiskReport } from "@/types/risk";
+import { AISummary } from "@/components/dashboard/AISummary";
 import { ScoreCard } from "@/components/dashboard/ScoreCard";
 import { VerdictBadge } from "@/components/dashboard/VerdictBadge";
 
@@ -51,6 +52,8 @@ export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) 
           />
         ))}
       </div>
+
+      <AISummary summary={report.ai_summary} />
 
       <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-between">
         <button
