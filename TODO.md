@@ -316,7 +316,7 @@ git commit -m "chore(frontend): scaffold Next.js app with TypeScript, Tailwind C
 
 ### Step 15 — Configure Backend Settings Module
 
-- [ ] Create `backend/app/core/config.py`:
+- [x] Create `backend/app/core/config.py`:
   ```python
   from pydantic_settings import BaseSettings
 
@@ -333,13 +333,13 @@ git commit -m "chore(frontend): scaffold Next.js app with TypeScript, Tailwind C
 
   settings = Settings()
   ```
-- [ ] Create `backend/.env` (gitignored):
+- [x] Create `backend/.env` (gitignored):
   ```
   DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/climate_risk
   GOOGLE_MAPS_API_KEY=your_key_here
   OPENAI_API_KEY=your_key_here
   ```
-- [ ] Create `backend/.env.example` (committed — safe template):
+- [x] Create `backend/.env.example` (committed — safe template):
   ```
   DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@HOST:PORT/climate_risk
   GOOGLE_MAPS_API_KEY=
@@ -364,7 +364,7 @@ git commit -m "chore(backend): scaffold FastAPI app with folder structure, setti
 
 ### Step 17 — Set Up PostgreSQL and Docker
 
-- [ ] Create `docker-compose.yml` in the project root:
+- [x] Create `docker-compose.yml` in the project root:
   ```yaml
   version: '3.9'
 
@@ -409,7 +409,7 @@ git commit -m "chore(backend): scaffold FastAPI app with folder structure, setti
   volumes:
     postgres_data:
   ```
-- [ ] Create `backend/Dockerfile`:
+- [x] Create `backend/Dockerfile`:
   ```dockerfile
   FROM python:3.12-slim
   WORKDIR /app
@@ -417,7 +417,7 @@ git commit -m "chore(backend): scaffold FastAPI app with folder structure, setti
   RUN pip install --no-cache-dir -r requirements.txt
   COPY . .
   ```
-- [ ] Create `frontend/Dockerfile`:
+- [x] Create `frontend/Dockerfile`:
   ```dockerfile
   FROM node:20-alpine
   WORKDIR /app
@@ -425,18 +425,18 @@ git commit -m "chore(backend): scaffold FastAPI app with folder structure, setti
   RUN npm install
   COPY . .
   ```
-- [ ] Test the full stack: `docker-compose up --build`
-- [ ] Verify all three containers start without errors
+- [x] Test the full stack: `docker-compose up --build`
+- [x] Verify all three containers start without errors
 
 
 
 ### Step 18 — Initialize Alembic for Database Migrations
 
-- [ ] Inside `backend/`, run:
+- [x] Inside `backend/`, run:
   ```bash
   alembic init alembic
   ```
-- [ ] Edit `backend/alembic/env.py` to connect to your settings:
+- [x] Edit `backend/alembic/env.py` to connect to your settings:
   ```python
   from app.core.config import settings
   config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
@@ -457,7 +457,7 @@ git commit -m "chore: add Docker Compose, PostgreSQL setup, and Alembic migratio
 
 ### Step 20 — Set Up GitHub Actions CI Pipeline
 
-- [ ] Create `.github/workflows/ci.yml`:
+- [x] Create `.github/workflows/ci.yml`:
   ```yaml
   name: CI
 
