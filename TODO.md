@@ -163,7 +163,7 @@ git push -u origin setup/project-foundation
 
 ### Step 8 — Scaffold the Frontend (Next.js)
 
-- [ ] Navigate to `frontend/` and initialize the Next.js project:
+- [x] Navigate to `frontend/` and initialize the Next.js project:
   ```bash
   cd frontend
   npx create-next-app@latest . \
@@ -174,7 +174,7 @@ git push -u origin setup/project-foundation
     --src-dir \
     --import-alias "@/*"
   ```
-- [ ] Verify it runs: `npm run dev` → open `http://localhost:3000` and confirm
+- [x] Verify it runs: `npm run dev` → open `http://localhost:3000` and confirm
   ```
   the default Next.js page renders
   ```
@@ -183,7 +183,7 @@ git push -u origin setup/project-foundation
 
 ### Step 9 — Configure the Frontend Folder Structure
 
-- [ ] Inside `frontend/src/`, create the following subdirectories:
+- [x] Inside `frontend/src/`, create the following subdirectories:
   ```
   src/
   ├── app/                # Next.js App Router pages
@@ -196,7 +196,7 @@ git push -u origin setup/project-foundation
   ├── types/              # TypeScript type definitions
   └── styles/             # Global styles beyond Tailwind defaults
   ```
-- [ ] Add `.gitkeep` to each empty directory
+- [x] Add `.gitkeep` to each empty directory
 
 
 
