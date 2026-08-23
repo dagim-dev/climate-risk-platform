@@ -899,17 +899,17 @@ git commit -m "feat(scoring): implement flood, hurricane, heat, and wildfire sco
 
 ### Step 47 — Merge v0.2-alpha Features and Tag
 
-- [ ] Push all feature branches:
+- [x] Push all feature branches:
   ```bash
   git push origin feature/geocoding-service
   git push origin feature/climate-data-integration
   git push origin feature/risk-scoring-engine
   ```
-- [ ] Open PRs in GitHub, merging in this order (each depends on the previous):
+- [x] Open PRs in GitHub, merging in this order (each depends on the previous):
   1. `feature/geocoding-service` → `develop`
   2. `feature/climate-data-integration` → `develop`
   3. `feature/risk-scoring-engine` → `develop`
-- [ ] After all three PRs are merged, pull and tag:
+- [x] After all three PRs are merged, pull and tag:
   ```bash
   git checkout develop
   git pull origin develop
