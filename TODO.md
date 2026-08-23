@@ -202,12 +202,12 @@ git push -u origin setup/project-foundation
 
 ### Step 10 — Configure Frontend Environment Variables
 
-- [ ] Create `frontend/.env.local` (gitignored — never commit this):
+- [x] Create `frontend/.env.local` (gitignored — never commit this):
   ```
   NEXT_PUBLIC_API_URL=http://localhost:8000
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key_here
   ```
-- [ ] Create `frontend/.env.example` (committed — safe template for teammates):
+- [x] Create `frontend/.env.example` (committed — safe template for teammates):
   ```
   NEXT_PUBLIC_API_URL=http://localhost:8000
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
@@ -228,14 +228,14 @@ git commit -m "chore(frontend): scaffold Next.js app with TypeScript, Tailwind C
 
 ### Step 12 — Scaffold the Backend (FastAPI)
 
-- [ ] Navigate to `backend/` and create a Python virtual environment:
+- [x] Navigate to `backend/` and create a Python virtual environment:
   ```bash
   cd backend
   python -m venv .venv
   source .venv/bin/activate     # macOS/Linux
   # .venv\Scripts\activate      # Windows
   ```
-- [ ] Create `backend/requirements.txt`:
+- [x] Create `backend/requirements.txt`:
   ```
   fastapi==0.111.0
   uvicorn[standard]==0.29.0
@@ -250,13 +250,13 @@ git commit -m "chore(frontend): scaffold Next.js app with TypeScript, Tailwind C
   pytest==8.2.0
   pytest-asyncio==0.23.6
   ```
-- [ ] Install: `pip install -r requirements.txt`
+- [x] Install: `pip install -r requirements.txt`
 
 
 
 ### Step 13 — Define the Backend Folder Structure
 
-- [ ] Inside `backend/`, create the following layout:
+- [x] Inside `backend/`, create the following layout:
   ```
   backend/
   ├── app/
@@ -284,7 +284,7 @@ git commit -m "chore(frontend): scaffold Next.js app with TypeScript, Tailwind C
 
 ### Step 14 — Create the FastAPI Application Entrypoint
 
-- [ ] Create `backend/app/main.py`:
+- [x] Create `backend/app/main.py`:
   ```python
   from fastapi import FastAPI
   from fastapi.middleware.cors import CORSMiddleware
@@ -307,7 +307,7 @@ git commit -m "chore(frontend): scaffold Next.js app with TypeScript, Tailwind C
   async def health_check():
       return {"status": "ok", "version": "0.1.0"}
   ```
-- [ ] Start the server and verify: `uvicorn app.main:app --reload` →
+- [x] Start the server and verify: `uvicorn app.main:app --reload` →
   ```
   `GET http://localhost:8000/health` returns `{"status": "ok"}`
   ```
