@@ -737,7 +737,7 @@ git checkout -b feature/risk-scoring-engine
 
 ### Step 37 — Define the Risk Report Pydantic Schemas
 
-- [ ] Create `backend/app/schemas/risk.py`:
+- [x] Create `backend/app/schemas/risk.py`:
   ```python
   from pydantic import BaseModel, Field
   from typing import Optional
@@ -766,7 +766,7 @@ git checkout -b feature/risk-scoring-engine
 
 ### Step 38 — Build the Severity Label Helper
 
-- [ ] Create `backend/app/services/scoring/helpers.py`:
+- [x] Create `backend/app/services/scoring/helpers.py`:
   - Function `score_to_severity(score: int) -> str`:
     - 0–25 → `"Low"`
     - 26–50 → `"Moderate"`
@@ -777,7 +777,7 @@ git checkout -b feature/risk-scoring-engine
 
 ### Step 39 — Build the Flood Risk Scoring Algorithm
 
-- [ ] Create `backend/app/services/scoring/flood_scorer.py`:
+- [x] Create `backend/app/services/scoring/flood_scorer.py`:
   - Input: FEMA flood zone data for the coordinates
   - Scoring logic:
     - Zone AE or A (1% annual flood chance) → base score 70–90
@@ -792,7 +792,7 @@ git checkout -b feature/risk-scoring-engine
 
 ### Step 40 — Build the Hurricane Risk Scoring Algorithm
 
-- [ ] Create `backend/app/services/scoring/hurricane_scorer.py`:
+- [x] Create `backend/app/services/scoring/hurricane_scorer.py`:
   - Input: NOAA hurricane data + coordinates
   - Scoring logic:
     - Coastal proximity within 25 miles → apply high multiplier
@@ -805,7 +805,7 @@ git checkout -b feature/risk-scoring-engine
 
 ### Step 41 — Build the Heat Risk Scoring Algorithm
 
-- [ ] Create `backend/app/services/scoring/heat_scorer.py`:
+- [x] Create `backend/app/services/scoring/heat_scorer.py`:
   - Input: NOAA temperature data + coordinates
   - Scoring logic:
     - Days per year exceeding 95°F/35°C (scale 0–100 over 0–90 days)
@@ -817,7 +817,7 @@ git checkout -b feature/risk-scoring-engine
 
 ### Step 42 — Build the Wildfire Risk Scoring Algorithm
 
-- [ ] Create `backend/app/services/scoring/wildfire_scorer.py`:
+- [x] Create `backend/app/services/scoring/wildfire_scorer.py`:
   - Input: USGS wildfire data + coordinates
   - Scoring logic:
     - Fire count density per 100 km² over last 20 years (scale to 0–100)
@@ -830,7 +830,7 @@ git checkout -b feature/risk-scoring-engine
 
 ### Step 43 — Build the Risk Aggregator
 
-- [ ] Create `backend/app/services/scoring/aggregator.py`:
+- [x] Create `backend/app/services/scoring/aggregator.py`:
   - Combine the four hazard scores using weighted averaging:
     - Flood: 30%, Hurricane: 30%, Heat: 20%, Wildfire: 20%
     - (Weights are reasonable defaults — will become configurable in v3.0)
@@ -844,7 +844,7 @@ git checkout -b feature/risk-scoring-engine
 
 ### Step 44 — Create the Risk Analysis API Endpoint
 
-- [ ] Create `backend/app/api/v1/endpoints/risk.py`:
+- [x] Create `backend/app/api/v1/endpoints/risk.py`:
   ```python
   from fastapi import APIRouter, HTTPException
   from app.schemas.address import AddressRequest
@@ -865,13 +865,13 @@ git checkout -b feature/risk-scoring-engine
       except Exception as e:
           raise HTTPException(status_code=500, detail="Risk analysis failed.")
   ```
-- [ ] Register this router in `backend/app/main.py`
+- [x] Register this router in `backend/app/main.py`
 
 
 
 ### Step 45 — Write Unit Tests for the Risk Scoring Engine
 
-- [ ] Create `backend/tests/test_risk_scoring.py`:
+- [x] Create `backend/tests/test_risk_scoring.py`:
   - Test: Miami Beach, FL → flood score ≥ 70, hurricane score ≥ 80
   - Test: Denver, CO → flood score ≤ 30, hurricane score ≤ 15
   - Test: Paradise, CA → wildfire score ≥ 75
@@ -881,8 +881,8 @@ git checkout -b feature/risk-scoring-engine
   - Test: Overall score ≤ 35 → verdict is "Go"
   - Test: Overall score 36–65 → verdict is "Caution"
   - Test: Overall score ≥ 66 → verdict is "Avoid"
-- [ ] Run: `pytest backend/tests/test_risk_scoring.py -v`
-- [ ] Achieve minimum 80% coverage on all scoring modules
+- [x] Run: `pytest backend/tests/test_risk_scoring.py -v`
+- [x] Achieve minimum 80% coverage on all scoring modules
 
 
 
