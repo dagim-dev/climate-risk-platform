@@ -554,7 +554,7 @@ git checkout -b feature/geocoding-service
 
 ### Step 24 — Define the Address Pydantic Schemas
 
-- [ ] Create `backend/app/schemas/address.py`:
+- [x] Create `backend/app/schemas/address.py`:
   ```python
   from pydantic import BaseModel
 
@@ -572,7 +572,7 @@ git checkout -b feature/geocoding-service
 
 ### Step 25 — Build the Geocoding Service
 
-- [ ] Create `backend/app/services/geocoding.py`:
+- [x] Create `backend/app/services/geocoding.py`:
   ```python
   import httpx
   from app.core.config import settings
@@ -606,7 +606,7 @@ git checkout -b feature/geocoding-service
 
 ### Step 26 — Create the Geocoding API Endpoint
 
-- [ ] Create `backend/app/api/v1/endpoints/geocoding.py`:
+- [x] Create `backend/app/api/v1/endpoints/geocoding.py`:
   ```python
   from fastapi import APIRouter, HTTPException
   from app.schemas.address import AddressRequest, Coordinates
@@ -621,17 +621,17 @@ git checkout -b feature/geocoding-service
       except ValueError as e:
           raise HTTPException(status_code=400, detail=str(e))
   ```
-- [ ] Register the router in `backend/app/main.py` under the `/api/v1` prefix
+- [x] Register the router in `backend/app/main.py` under the `/api/v1` prefix
 
 
 
 ### Step 27 — Write Unit Tests for Geocoding
 
-- [ ] Create `backend/tests/test_geocoding.py`:
+- [x] Create `backend/tests/test_geocoding.py`:
   - Test: a valid US address returns a `Coordinates` object with non-null lat/lng
   - Test: an invalid or garbage address raises `ValueError`
   - Test: an empty string address raises a Pydantic validation error
-- [ ] Run: `pytest backend/tests/test_geocoding.py -v`
+- [x] Run: `pytest backend/tests/test_geocoding.py -v`
 
 
 
