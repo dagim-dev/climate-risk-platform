@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { analyzeAddress } from "@/lib/api-client";
 import type { ClimateRiskReport } from "@/types/risk";
 
@@ -10,6 +10,7 @@ interface AddressSearchProps {
 }
 
 export function AddressSearch({ onResult, onLoadingChange }: AddressSearchProps) {
+  const inputId = useId();
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,11 +40,11 @@ export function AddressSearch({ onResult, onLoadingChange }: AddressSearchProps)
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-2xl" noValidate>
       <div className="flex flex-col gap-3 sm:flex-row">
-        <label htmlFor="address-search" className="sr-only">
+        <label htmlFor={inputId} className="sr-only">
           Property address
         </label>
         <input
-          id="address-search"
+          id={inputId}
           type="text"
           value={address}
           onChange={(event) => setAddress(event.target.value)}
