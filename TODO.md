@@ -658,7 +658,7 @@ git checkout -b feature/climate-data-integration
 
 ### Step 30 — Document All Data Sources
 
-- [ ] Create `docs/data-sources.md` and document each of the following:
+- [x] Create `docs/data-sources.md` and document each of the following:
   - **NOAA Climate Data Online (CDO) API:** base URL, auth method (token header),
   how to query temperature normals and extreme event history by station
   - **NASA EarthData API:** required datasets for temperature projections,
@@ -673,7 +673,7 @@ git checkout -b feature/climate-data-integration
 
 ### Step 31 — Build the FEMA Flood Data Service
 
-- [ ] Create `backend/app/services/climate/flood_data.py`:
+- [x] Create `backend/app/services/climate/flood_data.py`:
   - Query the FEMA NFHL ArcGIS REST API using latitude and longitude
   - Return: flood zone designation (e.g., AE, X, AO), base flood elevation,
   special flood hazard area boolean flag
@@ -684,7 +684,7 @@ git checkout -b feature/climate-data-integration
 
 ### Step 32 — Build the NOAA Hurricane Data Service
 
-- [ ] Create `backend/app/services/climate/hurricane_data.py`:
+- [x] Create `backend/app/services/climate/hurricane_data.py`:
   - Query NOAA historical hurricane track data (IBTrACS dataset or CDO) for the
   surrounding region of the given coordinates
   - Return: historical storm count (last 50 years), nearest track distance in km,
@@ -695,7 +695,7 @@ git checkout -b feature/climate-data-integration
 
 ### Step 33 — Build the Heatwave Data Service
 
-- [ ] Create `backend/app/services/climate/heat_data.py`:
+- [x] Create `backend/app/services/climate/heat_data.py`:
   - Query NOAA CDO temperature data for the nearest climate station to the
   given coordinates
   - Calculate: average extreme heat days per year (days exceeding 95°F / 35°C),
@@ -706,7 +706,7 @@ git checkout -b feature/climate-data-integration
 
 ### Step 34 — Build the Wildfire Data Service
 
-- [ ] Create `backend/app/services/climate/wildfire_data.py`:
+- [x] Create `backend/app/services/climate/wildfire_data.py`:
   - Query USGS wildfire perimeter data for a 50 km radius around the coordinates
   - Return: fire count in the last 20 years, fire weather zone designation,
   dominant vegetation/fuel type (WUI classification)
