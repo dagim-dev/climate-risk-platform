@@ -30,6 +30,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+.worktrees/
 
 # Database
 *.db
