@@ -16,6 +16,10 @@ jobs:
           python-version: '3.12'
       - run: pip install -r backend/requirements.txt
       - run: cd backend && pytest tests/ -v
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:password@localhost:5432/climate_risk_test
+          GOOGLE_MAPS_API_KEY: test-key
+          OPENAI_API_KEY: test-key
 
   frontend-lint:
     runs-on: ubuntu-latest
