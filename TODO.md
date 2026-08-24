@@ -1379,7 +1379,7 @@ git checkout -b feature/basic-report-export
 
 ### Step 78 — Build the Printable Report Page
 
-- [ ] Create `frontend/src/app/report/page.tsx`:
+- [x] Create `frontend/src/app/report/page.tsx`:
   - Reads the current report from `sessionStorage` or URL query params
   - Stripped-down, print-optimized layout — no Header/Footer nav
   - Includes: property address, date, all four scores with severity labels,
@@ -1392,10 +1392,10 @@ git checkout -b feature/basic-report-export
 
 ### Step 79 — Link the Dashboard to the Report Page
 
-- [ ] Update the "Download Report" button in `RiskDashboard.tsx`:
+- [x] Update the "Download Report" button in `RiskDashboard.tsx`:
   - Save the current report to `sessionStorage` with a keyed entry
   - Navigate to `/report` on click
-- [ ] Test the print flow in Chrome, Firefox, and Safari
+- [x] Test the print flow in Chrome, Firefox, and Safari
 
 
 
@@ -1422,13 +1422,13 @@ git checkout -b testing/e2e-mvp
 
 ### Step 82 — Install and Configure Playwright
 
-- [ ] Install Playwright in the frontend:
+- [x] Install Playwright in the frontend:
   ```bash
   cd frontend
   npm install -D @playwright/test
   npx playwright install
   ```
-- [ ] Create `frontend/playwright.config.ts` with:
+- [x] Create `frontend/playwright.config.ts` with:
   - `baseURL: 'http://localhost:3000'`
   - `testDir: './tests/e2e'`
   - Reporter: `list` for local, `github` for CI
@@ -1437,7 +1437,7 @@ git checkout -b testing/e2e-mvp
 
 ### Step 83 — Write E2E Test Scenarios
 
-- [ ] Create `frontend/tests/e2e/address-search.spec.ts`:
+- [x] Create `frontend/tests/e2e/address-search.spec.ts`:
   - Test 1: Home page loads, search input is visible and focusable
   - Test 2: Valid address submission → loading skeleton appears → dashboard renders
   with 4 score cards visible
@@ -1451,10 +1451,10 @@ git checkout -b testing/e2e-mvp
 
 ### Step 84 — Run All Tests and Fix All Failures
 
-- [ ] Run backend unit tests: `pytest backend/tests/ -v`
-- [ ] Run E2E tests: `cd frontend && npx playwright test`
-- [ ] Fix every failing test before moving to deployment
-- [ ] Ensure backend scoring test coverage is ≥ 80%
+- [x] Run backend unit tests: `pytest backend/tests/ -v`
+- [x] Run E2E tests: `cd frontend && npx playwright test`
+- [x] Fix every failing test before moving to deployment
+- [x] Ensure backend scoring test coverage is ≥ 80%
 
 
 
@@ -1470,6 +1470,8 @@ git commit -m "test: add Playwright E2E tests for address search, risk dashboard
 
 
 ### Step 86 — Production Deployment Setup
+
+> **On hold:** Production deployment (Steps 86+) is deferred. Current focus is local-only development.
 
 ```bash
 git checkout develop
@@ -1532,8 +1534,8 @@ alembic upgrade head
   ```
   for Next.js
   ```
-- [ ] Install and configure `sentry-sdk` in the FastAPI backend
-- [ ] Install and configure `@sentry/nextjs` in the Next.js frontend
+- [x] Install and configure `sentry-sdk` in the FastAPI backend
+- [x] Install and configure `@sentry/nextjs` in the Next.js frontend
 - [ ] Trigger a test error in each environment and confirm it appears in the
   ```
   Sentry dashboard
@@ -1543,7 +1545,7 @@ alembic upgrade head
 
 ### Step 92 — Add the GitHub Actions Deployment Workflow
 
-- [ ] Create `.github/workflows/deploy.yml`:
+- [x] Create `.github/workflows/deploy.yml`:
   - Trigger: push to `main` only
   - Job 1: run backend tests (`pytest`) before deploying
   - Job 2: deploy frontend to Vercel via Vercel CLI
@@ -1566,14 +1568,14 @@ git commit -m "chore: add production deployment config, Sentry error monitoring,
 
 - [ ] Test 10 diverse addresses in the **production** environment — not local
 - [ ] Verify AI summaries load within 10 seconds
-- [ ] Verify all four score cards render with the correct color coding
-- [ ] Verify the print/PDF export produces a clean, readable document
+- [x] Verify all four score cards render with the correct color coding
+- [x] Verify the print/PDF export produces a clean, readable document
 - [ ] Verify `GET /health` returns `200 OK` from the production backend URL
-- [ ] Verify no raw error messages or stack traces are exposed to the user
-- [ ] Verify the "Analyze Another Address" reset flow works correctly
+- [x] Verify no raw error messages or stack traces are exposed to the user
+- [x] Verify the "Analyze Another Address" reset flow works correctly
 - [ ] Verify Sentry captures errors when you intentionally break a request
-- [ ] Finalize and update `README.md` with production URLs and full setup guide
-- [ ] Update `CHANGELOG.md` with the v1.0 release entry
+- [x] Finalize and update `README.md` with production URLs and full setup guide
+- [x] Update `CHANGELOG.md` with the v1.0 release entry
 
 
 
@@ -1944,10 +1946,10 @@ git checkout -b feature/enterprise-reporting
 
 | Version    | Status        | Key Deliverable                                        |
 | ---------- | ------------- | ------------------------------------------------------ |
-| v0.1-alpha | ⬜ Not Started | Monorepo scaffolding, Docker, CI pipeline              |
-| v0.2-alpha | ⬜ Not Started | Geocoding, climate data APIs, risk scoring engine      |
-| v0.3-alpha | ⬜ Not Started | Full frontend: search, dashboard, score cards, verdict |
-| v1.0.0     | ⬜ Not Started | AI summaries, printable reports, production deploy     |
+| v0.1-alpha | ✅ Complete    | Monorepo scaffolding, Docker, CI pipeline              |
+| v0.2-alpha | ✅ Complete    | Geocoding, climate data APIs, risk scoring engine      |
+| v0.3-alpha | ✅ Complete    | Full frontend: search, dashboard, score cards, verdict |
+| v1.0.0     | 🔄 In Progress | AI summaries, printable reports, production deploy     |
 | v2.0.0     | ⬜ Not Started | Auth, saved properties, PDF, maps, Stripe billing      |
 | v3.0.0     | ⬜ Not Started | Portfolio, public API, custom models, insurance        |
 
