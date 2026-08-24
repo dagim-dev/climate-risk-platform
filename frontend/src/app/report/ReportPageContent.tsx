@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { VerdictBadge } from "@/components/dashboard/VerdictBadge";
@@ -9,7 +9,7 @@ import {
   loadReportFromUrlParam,
 } from "@/lib/report-storage";
 import { severityTextClass } from "@/lib/risk-styles";
-import type { ClimateRiskReport, Severity } from "@/types/risk";
+import type { Severity } from "@/types/risk";
 
 function formatDate(iso: string): string {
   const date = new Date(iso);
@@ -63,27 +63,17 @@ function ReportScoreRow({
 
 export function ReportPageContent() {
   const searchParams = useSearchParams();
-  const [report, setReport] = useState<ClimateRiskReport | null>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
+  const report = useMemo(() => {
     const fromUrl = searchParams.get("report");
     if (fromUrl) {
       const parsed = loadReportFromUrlParam(fromUrl);
       if (parsed) {
-        setReport(parsed);
-        setReady(true);
-        return;
+        return parsed;
       }
     }
 
-    setReport(loadReportFromSession());
-    setReady(true);
+    return loadReportFromSession();
   }, [searchParams]);
-
-  if (!ready) {
-    return null;
-  }
 
   if (!report) {
     return (
