@@ -1,8 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import type { ClimateRiskReport } from "@/types/risk";
 import { ScoreCard } from "@/components/dashboard/ScoreCard";
 import { VerdictBadge } from "@/components/dashboard/VerdictBadge";
+import { saveReport } from "@/lib/report-storage";
 
 interface RiskDashboardProps {
   report: ClimateRiskReport;
@@ -19,6 +21,13 @@ function formatDate(iso: string): string {
 }
 
 export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) {
+  const router = useRouter();
+
+  const handleViewReport = () => {
+    saveReport(report);
+    router.push("/report");
+  };
+
   const hazards = [
     { key: "flood", hazard: "Flood", icon: "🌊", data: report.flood_risk },
     { key: "hurricane", hazard: "Hurricane", icon: "🌀", data: report.hurricane_risk },
@@ -55,12 +64,10 @@ export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) 
       <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-between">
         <button
           type="button"
-          disabled
-          aria-disabled="true"
-          title="Report downloads will be available in v1.0"
-          className="inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-500 opacity-60 cursor-not-allowed"
+          onClick={handleViewReport}
+          className="inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white px-5 py-2.5 text-sm font-medium text-brand-primary transition-colors hover:bg-zinc-50"
         >
-          Download Report
+          View Full Report
         </button>
         <button
           type="button"

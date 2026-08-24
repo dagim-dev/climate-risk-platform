@@ -1,0 +1,40 @@
+.report-root {
+  min-height: 100vh;
+}
+
+.report-container {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  .report-root {
+    min-height: auto;
+  }
+
+  .report-container {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .report-score-grid {
+    break-inside: avoid;
+  }
+
+  .report-section {
+    break-inside: avoid;
+  }
+}
