@@ -950,14 +950,14 @@ git checkout -b feature/app-layout
 
 ### Step 49 — Build the Global Layout Components
 
-- [ ] Create `frontend/src/components/layout/Header.tsx`:
+- [x] Create `frontend/src/components/layout/Header.tsx`:
   - Platform logo (text placeholder: "ClimateRisk")
   - Navigation links: "Home", "About", "Pricing"
   - "Sign In" button (non-functional placeholder — enabled in v2.0)
-- [ ] Create `frontend/src/components/layout/Footer.tsx`:
+- [x] Create `frontend/src/components/layout/Footer.tsx`:
   - Copyright line
   - Links: Privacy Policy, Terms of Service, Contact
-- [ ] Update `frontend/src/app/layout.tsx` to wrap all pages in the Header/Footer
+- [x] Update `frontend/src/app/layout.tsx` to wrap all pages in the Header/Footer
   ```
   shell
   ```
@@ -966,7 +966,7 @@ git checkout -b feature/app-layout
 
 ### Step 50 — Establish the Design System
 
-- [ ] Update `frontend/tailwind.config.ts` with a custom color palette:
+- [x] Update `frontend/tailwind.config.ts` with a custom color palette:
   ```ts
   theme: {
     extend: {
@@ -985,7 +985,7 @@ git checkout -b feature/app-layout
     }
   }
   ```
-- [ ] Document the palette and usage rules in `docs/design-system.md`
+- [x] Document the palette and usage rules in `docs/design-system.md`
 
 
 
@@ -1012,7 +1012,7 @@ git checkout -b feature/address-search-ui
 
 ### Step 53 — Build the Frontend API Client
 
-- [ ] Create `frontend/src/lib/api-client.ts`:
+- [x] Create `frontend/src/lib/api-client.ts`:
   ```typescript
   const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
@@ -1036,7 +1036,7 @@ git checkout -b feature/address-search-ui
 
 ### Step 54 — Define Frontend TypeScript Types
 
-- [ ] Create `frontend/src/types/risk.ts`:
+- [x] Create `frontend/src/types/risk.ts`:
   ```typescript
   export type Severity = 'Low' | 'Moderate' | 'High' | 'Extreme';
   export type Verdict  = 'Go' | 'Caution' | 'Avoid';
@@ -1067,7 +1067,7 @@ git checkout -b feature/address-search-ui
 
 ### Step 55 — Build the Address Search Component
 
-- [ ] Create `frontend/src/components/ui/AddressSearch.tsx`:
+- [x] Create `frontend/src/components/ui/AddressSearch.tsx`:
   - Text input with placeholder: "Enter a property address (e.g., 123 Main St, Miami, FL)"
   - "Analyze Risk" submit button
   - Loading spinner displayed while the API call is in progress
@@ -1079,7 +1079,7 @@ git checkout -b feature/address-search-ui
 
 ### Step 56 — Build the Landing Page
 
-- [ ] Update `frontend/src/app/page.tsx`:
+- [x] Update `frontend/src/app/page.tsx`:
   - Hero section headline: "Understand Climate Risk Before You Invest"
   - Sub-headline: "Enter any U.S. property address for an instant, data-backed
   climate risk assessment."
@@ -1115,7 +1115,7 @@ git checkout -b feature/risk-dashboard
 
 ### Step 59 — Build the Score Card Component
 
-- [ ] Create `frontend/src/components/dashboard/ScoreCard.tsx`:
+- [x] Create `frontend/src/components/dashboard/ScoreCard.tsx`:
   - Props: `hazard: string`, `icon: string`, `score: number`,
   `severity: Severity`, `factors: string[]`
   - Visual: a horizontal progress bar or arc gauge, 0–100 scale
@@ -1127,7 +1127,7 @@ git checkout -b feature/risk-dashboard
 
 ### Step 60 — Build the Verdict Badge Component
 
-- [ ] Create `frontend/src/components/dashboard/VerdictBadge.tsx`:
+- [x] Create `frontend/src/components/dashboard/VerdictBadge.tsx`:
   - Props: `verdict: Verdict`, `overallScore: number`
   - Large badge: "✅ Go" / "⚠️ Caution" / "🚫 Avoid"
   - Background color matches verdict: green, amber, red
@@ -1138,7 +1138,7 @@ git checkout -b feature/risk-dashboard
 
 ### Step 61 — Build the Loading Skeleton Component
 
-- [ ] Create `frontend/src/components/dashboard/LoadingSkeleton.tsx`:
+- [x] Create `frontend/src/components/dashboard/LoadingSkeleton.tsx`:
   - Mimics the exact layout of the full dashboard (badge + 4 cards)
   - Uses `animate-pulse` Tailwind class for shimmering grey placeholder blocks
   - Displayed while the API response is pending
@@ -1147,7 +1147,7 @@ git checkout -b feature/risk-dashboard
 
 ### Step 62 — Build the Risk Dashboard Component
 
-- [ ] Create `frontend/src/components/dashboard/RiskDashboard.tsx`:
+- [x] Create `frontend/src/components/dashboard/RiskDashboard.tsx`:
   - Props: `report: ClimateRiskReport`
   - Top section: formatted address, date generated
   - `VerdictBadge` displayed prominently
@@ -1161,7 +1161,7 @@ git checkout -b feature/risk-dashboard
 
 ### Step 63 — Wire Everything Together on the Home Page
 
-- [ ] Update `frontend/src/app/page.tsx`:
+- [x] Update `frontend/src/app/page.tsx`:
   - Show `LoadingSkeleton` while the API call is in progress
   - Show `RiskDashboard` when report data is available
   - Show the `AddressSearch` component again below the dashboard so users can
@@ -1192,7 +1192,7 @@ git checkout -b feature/about-pricing-pages
 
 ### Step 66 — Create the About Page
 
-- [ ] Create `frontend/src/app/about/page.tsx`:
+- [x] Create `frontend/src/app/about/page.tsx`:
   - Platform mission statement
   - Data source section: explain NOAA, NASA, FEMA, USGS and what each
   contributes to the risk scores
@@ -1203,7 +1203,7 @@ git checkout -b feature/about-pricing-pages
 
 ### Step 67 — Create the Pricing Page
 
-- [ ] Create `frontend/src/app/pricing/page.tsx`:
+- [x] Create `frontend/src/app/pricing/page.tsx`:
   - Three-column pricing table: Individual ($49/mo), Professional ($99/mo),
   Business ($500–$5,000/mo)
   - Feature comparison rows per tier
@@ -1225,13 +1225,13 @@ git commit -m "feat(frontend): add about and pricing pages with feature comparis
 
 ### Step 69 — Merge v0.3-alpha Features and Tag
 
-- [ ] Push all v0.3-alpha branches to GitHub
-- [ ] Open and merge PRs in this order:
+- [x] Push all v0.3-alpha branches to GitHub
+- [x] Open and merge PRs in this order:
   1. `feature/app-layout` → `develop`
   2. `feature/address-search-ui` → `develop`
   3. `feature/risk-dashboard` → `develop`
   4. `feature/about-pricing-pages` → `develop`
-- [ ] Pull updated `develop` and tag:
+- [x] Pull updated `develop` and tag:
   ```bash
   git checkout develop
   git pull origin develop
@@ -1379,7 +1379,7 @@ git checkout -b feature/basic-report-export
 
 ### Step 78 — Build the Printable Report Page
 
-- [ ] Create `frontend/src/app/report/page.tsx`:
+- [x] Create `frontend/src/app/report/page.tsx`:
   - Reads the current report from `sessionStorage` or URL query params
   - Stripped-down, print-optimized layout — no Header/Footer nav
   - Includes: property address, date, all four scores with severity labels,
@@ -1392,10 +1392,10 @@ git checkout -b feature/basic-report-export
 
 ### Step 79 — Link the Dashboard to the Report Page
 
-- [ ] Update the "Download Report" button in `RiskDashboard.tsx`:
+- [x] Update the "Download Report" button in `RiskDashboard.tsx`:
   - Save the current report to `sessionStorage` with a keyed entry
   - Navigate to `/report` on click
-- [ ] Test the print flow in Chrome, Firefox, and Safari
+- [x] Test the print flow in Chrome, Firefox, and Safari
 
 
 
@@ -1422,13 +1422,13 @@ git checkout -b testing/e2e-mvp
 
 ### Step 82 — Install and Configure Playwright
 
-- [ ] Install Playwright in the frontend:
+- [x] Install Playwright in the frontend:
   ```bash
   cd frontend
   npm install -D @playwright/test
   npx playwright install
   ```
-- [ ] Create `frontend/playwright.config.ts` with:
+- [x] Create `frontend/playwright.config.ts` with:
   - `baseURL: 'http://localhost:3000'`
   - `testDir: './tests/e2e'`
   - Reporter: `list` for local, `github` for CI
@@ -1437,7 +1437,7 @@ git checkout -b testing/e2e-mvp
 
 ### Step 83 — Write E2E Test Scenarios
 
-- [ ] Create `frontend/tests/e2e/address-search.spec.ts`:
+- [x] Create `frontend/tests/e2e/address-search.spec.ts`:
   - Test 1: Home page loads, search input is visible and focusable
   - Test 2: Valid address submission → loading skeleton appears → dashboard renders
   with 4 score cards visible
@@ -1451,10 +1451,10 @@ git checkout -b testing/e2e-mvp
 
 ### Step 84 — Run All Tests and Fix All Failures
 
-- [ ] Run backend unit tests: `pytest backend/tests/ -v`
-- [ ] Run E2E tests: `cd frontend && npx playwright test`
-- [ ] Fix every failing test before moving to deployment
-- [ ] Ensure backend scoring test coverage is ≥ 80%
+- [x] Run backend unit tests: `pytest backend/tests/ -v`
+- [x] Run E2E tests: `cd frontend && npx playwright test`
+- [x] Fix every failing test before moving to deployment
+- [x] Ensure backend scoring test coverage is ≥ 80%
 
 
 
@@ -1470,6 +1470,8 @@ git commit -m "test: add Playwright E2E tests for address search, risk dashboard
 
 
 ### Step 86 — Production Deployment Setup
+
+> **On hold:** Production deployment (Steps 86+) is deferred. Current focus is local-only development.
 
 ```bash
 git checkout develop
@@ -1532,8 +1534,8 @@ alembic upgrade head
   ```
   for Next.js
   ```
-- [ ] Install and configure `sentry-sdk` in the FastAPI backend
-- [ ] Install and configure `@sentry/nextjs` in the Next.js frontend
+- [x] Install and configure `sentry-sdk` in the FastAPI backend
+- [x] Install and configure `@sentry/nextjs` in the Next.js frontend
 - [ ] Trigger a test error in each environment and confirm it appears in the
   ```
   Sentry dashboard
@@ -1543,7 +1545,7 @@ alembic upgrade head
 
 ### Step 92 — Add the GitHub Actions Deployment Workflow
 
-- [ ] Create `.github/workflows/deploy.yml`:
+- [x] Create `.github/workflows/deploy.yml`:
   - Trigger: push to `main` only
   - Job 1: run backend tests (`pytest`) before deploying
   - Job 2: deploy frontend to Vercel via Vercel CLI
@@ -1566,14 +1568,14 @@ git commit -m "chore: add production deployment config, Sentry error monitoring,
 
 - [ ] Test 10 diverse addresses in the **production** environment — not local
 - [ ] Verify AI summaries load within 10 seconds
-- [ ] Verify all four score cards render with the correct color coding
-- [ ] Verify the print/PDF export produces a clean, readable document
+- [x] Verify all four score cards render with the correct color coding
+- [x] Verify the print/PDF export produces a clean, readable document
 - [ ] Verify `GET /health` returns `200 OK` from the production backend URL
-- [ ] Verify no raw error messages or stack traces are exposed to the user
-- [ ] Verify the "Analyze Another Address" reset flow works correctly
+- [x] Verify no raw error messages or stack traces are exposed to the user
+- [x] Verify the "Analyze Another Address" reset flow works correctly
 - [ ] Verify Sentry captures errors when you intentionally break a request
-- [ ] Finalize and update `README.md` with production URLs and full setup guide
-- [ ] Update `CHANGELOG.md` with the v1.0 release entry
+- [x] Finalize and update `README.md` with production URLs and full setup guide
+- [x] Update `CHANGELOG.md` with the v1.0 release entry
 
 
 
@@ -1944,10 +1946,10 @@ git checkout -b feature/enterprise-reporting
 
 | Version    | Status        | Key Deliverable                                        |
 | ---------- | ------------- | ------------------------------------------------------ |
-| v0.1-alpha | ⬜ Not Started | Monorepo scaffolding, Docker, CI pipeline              |
-| v0.2-alpha | ⬜ Not Started | Geocoding, climate data APIs, risk scoring engine      |
-| v0.3-alpha | ⬜ Not Started | Full frontend: search, dashboard, score cards, verdict |
-| v1.0.0     | ⬜ Not Started | AI summaries, printable reports, production deploy     |
+| v0.1-alpha | ✅ Complete    | Monorepo scaffolding, Docker, CI pipeline              |
+| v0.2-alpha | ✅ Complete    | Geocoding, climate data APIs, risk scoring engine      |
+| v0.3-alpha | ✅ Complete    | Full frontend: search, dashboard, score cards, verdict |
+| v1.0.0     | 🔄 In Progress | AI summaries, printable reports, production deploy     |
 | v2.0.0     | ⬜ Not Started | Auth, saved properties, PDF, maps, Stripe billing      |
 | v3.0.0     | ⬜ Not Started | Portfolio, public API, custom models, insurance        |
 
