@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     APP_VERSION: str = "0.1.0"
     SENTRY_DSN: str = ""
+    JWT_SECRET: str = "dev-jwt-secret-change-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 60 * 24 * 7
+    ANONYMOUS_DAILY_ANALYSIS_LIMIT: int = 3
 
     @property
     def cors_origins_list(self) -> list[str]:

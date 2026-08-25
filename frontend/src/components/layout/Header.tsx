@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { AuthNav } from "@/components/auth/AuthNav";
+
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
@@ -26,15 +28,7 @@ export function Header() {
           ))}
         </nav>
 
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          title="Sign in will be available in v2.0"
-          className="rounded-md bg-brand-accent px-4 py-2 text-sm font-medium text-brand-primary opacity-60 cursor-not-allowed"
-        >
-          Sign In
-        </button>
+        <AuthNav />
       </div>
     </header>
   );
