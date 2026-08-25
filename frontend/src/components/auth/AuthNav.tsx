@@ -14,13 +14,21 @@ export function AuthNav() {
 
   if (session?.user) {
     return (
-      <button
-        type="button"
-        onClick={() => signOut({ callbackUrl: "/" })}
-        className="rounded-md border border-white/30 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
-      >
-        Sign Out
-      </button>
+      <div className="flex items-center gap-3">
+        <Link
+          href="/properties"
+          className="text-sm font-medium text-white/80 transition-colors hover:text-brand-accent"
+        >
+          My Properties
+        </Link>
+        <button
+          type="button"
+          onClick={() => signOut({ callbackUrl: "/" })}
+          className="rounded-md border border-white/30 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
+        >
+          Sign Out
+        </button>
+      </div>
     );
   }
 

@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.geocoding import router as geocoding_router
+from app.api.v1.endpoints.properties import router as properties_router
 from app.api.v1.endpoints.risk import router as risk_router
 from app.core.config import settings
 from app.core.sentry import init_sentry
@@ -25,6 +26,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(geocoding_router, prefix="/api/v1")
+app.include_router(properties_router, prefix="/api/v1")
 app.include_router(risk_router, prefix="/api/v1")
 
 
