@@ -39,3 +39,6 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Generated PDF storage (local dev)
+backend/storage/

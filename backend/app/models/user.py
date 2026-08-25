@@ -17,6 +17,7 @@ class User(Base):
     hashed_password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     google_id: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True)
+    subscription_tier: Mapped[str] = mapped_column(String(50), default="free", server_default="free")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

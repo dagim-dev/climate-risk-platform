@@ -9,7 +9,15 @@ export interface SavedPropertyListItem {
   longitude: number;
   overall_risk_score: number;
   verdict: string;
+  pdf_url: string | null;
   updated_at: string;
+}
+
+export interface UserProfile {
+  id: number;
+  email: string;
+  name: string | null;
+  subscription_tier: string;
 }
 
 async function authFetch(
@@ -103,4 +111,49 @@ export async function deleteProperty(propertyId: number, accessToken: string): P
   if (!response.ok) {
     throw new Error("Failed to delete property");
   }
+}
+
+export async function getCurrentUser(accessToken: string): Promise<UserProfile> {
+  const response = await authFetch("/auth/me", accessToken);
+
+  if (!response.ok) {
+    throw new Error("Failed to load user profile");
+  }
+
+  return (await response.json()) as UserProfile;
+}
+
+const PAID_TIERS = new Set(["individual", "professional", "business"]);
+
+export function canDownloadPdf(subscriptionTier: string): boolean {
+  return PAID_TIERS.has(subscriptionTier);
+}
+
+export async function generatePropertyPdf(
+  propertyId: number,
+  accessToken: string,
+): Promise<string> {
+  const response = await authFetch(`/properties/${propertyId}/pdf`, accessToken, {
+    method: "POST",
+  });
+
+  if (response.status === 403) {
+    let detail = "PDF download requires a paid subscription.";
+    try {
+      const error = (await response.json()) as { detail?: string };
+      if (error.detail) detail = error.detail;
+    } catch {
+      // ignore
+    }
+    const err = new Error(detail) as Error & { code?: string };
+    err.code = "UPGRADE_REQUIRED";
+    throw err;
+  }
+
+  if (!response.ok) {
+    throw new Error("Failed to generate PDF");
+  }
+
+  const data = (await response.json()) as { pdf_url: string };
+  return data.pdf_url;
 }

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -15,6 +16,7 @@ class PropertyResponse(BaseModel):
     latitude: float
     longitude: float
     report_data: ClimateRiskReport
+    pdf_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -29,6 +31,7 @@ class PropertyListItem(BaseModel):
     longitude: float
     overall_risk_score: int = Field(..., ge=0, le=100)
     verdict: str
+    pdf_url: Optional[str] = None
     updated_at: datetime
 
     class Config:
