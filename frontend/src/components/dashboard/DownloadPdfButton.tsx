@@ -30,8 +30,10 @@ export function DownloadPdfButton({ propertyId, existingPdfUrl }: DownloadPdfBut
     let cancelled = false;
 
     async function loadTier() {
+      const token = accessToken;
+      if (!token) return;
       try {
-        const user = await getCurrentUser(accessToken);
+        const user = await getCurrentUser(token);
         if (!cancelled) {
           setSubscriptionTier(user.subscription_tier);
         }

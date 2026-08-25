@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import type { ClimateRiskReport } from "@/types/risk";
 import { AISummary } from "@/components/dashboard/AISummary";
+import { RiskTrendChart } from "@/components/dashboard/RiskTrendChart";
 import { SavePropertyButton } from "@/components/dashboard/SavePropertyButton";
 import { ScoreCard } from "@/components/dashboard/ScoreCard";
 import { VerdictBadge } from "@/components/dashboard/VerdictBadge";
@@ -64,6 +65,10 @@ export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) 
       </div>
 
       <AISummary summary={report.ai_summary} />
+
+      {report.historical_trend && report.historical_trend.length > 0 && (
+        <RiskTrendChart trend={report.historical_trend} />
+      )}
 
       <SavePropertyButton report={report} />
 
