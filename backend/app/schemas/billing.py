@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -13,7 +15,7 @@ class CheckoutResponse(BaseModel):
 
 class SubscriptionStatus(BaseModel):
     subscription_tier: str
-    stripe_customer_id: str | None = None
+    stripe_customer_id: Optional[str] = None
     active: bool
     analyses_per_month: int
     max_saved_properties: int
