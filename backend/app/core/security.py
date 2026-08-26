@@ -58,10 +58,3 @@ def verify_pdf_download_token(token: str, property_id: int) -> int | None:
         return int(parts[2])
     except (JWTError, ValueError):
         return None
-
-
-PAID_SUBSCRIPTION_TIERS = frozenset({"individual", "professional", "business"})
-
-
-def user_can_download_pdf(subscription_tier: str) -> bool:
-    return subscription_tier in PAID_SUBSCRIPTION_TIERS

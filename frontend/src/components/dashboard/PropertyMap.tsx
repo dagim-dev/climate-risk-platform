@@ -24,6 +24,15 @@ const VERDICT_COLORS: Record<Verdict, string> = {
   Avoid: "#ef4444",
 };
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 async function fetchFloodZonePolygons(
   lat: number,
   lng: number,
@@ -107,10 +116,10 @@ export function PropertyMap({
 
     const popup = new mapboxgl.Popup({ offset: 20, closeButton: false }).setHTML(
       `<div style="font-family:system-ui,sans-serif;padding:4px 0">
-        <strong style="font-size:13px">${address}</strong>
+        <strong style="font-size:13px">${escapeHtml(address)}</strong>
         <div style="margin-top:4px;font-size:12px;color:#555">
           Risk Score: <strong>${overallScore}/100</strong> &middot;
-          <span style="color:${VERDICT_COLORS[verdict]};font-weight:600">${verdict}</span>
+          <span style="color:${VERDICT_COLORS[verdict]};font-weight:600">${escapeHtml(verdict)}</span>
         </div>
       </div>`,
     );
@@ -168,8 +177,8 @@ export function PropertyMap({
             .setLngLat(e.lngLat)
             .setHTML(
               `<div style="font-family:system-ui,sans-serif;padding:4px 0">
-                <strong style="font-size:13px">FEMA Flood Zone ${props.FLD_ZONE ?? "N/A"}</strong>
-                ${props.ZONE_SUBTY ? `<div style="font-size:12px;color:#555;margin-top:2px">${props.ZONE_SUBTY}</div>` : ""}
+                <strong style="font-size:13px">FEMA Flood Zone ${escapeHtml(String(props.FLD_ZONE ?? "N/A"))}</strong>
+                ${props.ZONE_SUBTY ? `<div style="font-size:12px;color:#555;margin-top:2px">${escapeHtml(String(props.ZONE_SUBTY))}</div>` : ""}
               </div>`,
             )
             .addTo(map);

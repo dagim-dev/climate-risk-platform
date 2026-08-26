@@ -1,19 +1,42 @@
 # Production Deployment Guide
 
-This guide covers Steps 87–89 of the v1.0-MVP release: provisioning cloud
-infrastructure, configuring production environment variables, and setting up
-custom domains with SSL.
+> **Status: deferred.** This document is scaffolding for a future cloud
+> deploy. The application is **not live**. Local Docker Compose is the
+> supported runtime. `deploy.yml` is `workflow_dispatch` only.
 
-## Architecture
+This guide covers provisioning cloud infrastructure, configuring production
+environment variables, and setting up custom domains with SSL — when you
+choose to go live.
 
-| Component | Provider | URL |
-|-----------|----------|-----|
+## Architecture (planned, not live)
+
+| Component | Provider | Planned URL |
+|-----------|----------|-------------|
 | Frontend (Next.js) | Vercel | `https://climaterisk.io` |
 | Backend (FastAPI) | Google Cloud Run | `https://api.climaterisk.io` |
 | Database (PostgreSQL) | Supabase | Managed connection string |
 
-Vercel auto-deploys the frontend on every push to `main`. The backend deploys
-to Cloud Run via `scripts/provision-cloud-run.sh`.
+Do not treat those hostnames as a running product. The GitHub Actions
+deploy workflow does **not** run on push to `main`.
+
+## PDF storage (local-only today)
+
+Generated PDFs are written to `PDF_STORAGE_DIR` on the backend filesystem
+(`storage/pdfs` by default) and downloaded via short-lived JWT URLs. Cloud
+Run disks are ephemeral, so PDFs will not survive new revisions.
+
+**Before a real Cloud Run deploy:** move PDF storage to GCS or S3, or
+document that PDF downloads are session-local and may disappear.
+
+## Public API posture
+
+`--allow-unauthenticated` on Cloud Run is intentional: `/health`,
+`POST /api/v1/geocode`, and `POST /api/v1/analyze` are public. Saved
+properties, PDF generation, and `/auth/me` still require a JWT.
+
+Production **must** set a real `JWT_SECRET` (the development default is
+rejected at startup). Also set `GOOGLE_CLIENT_ID` if Google sign-in is
+enabled.
 
 ---
 
@@ -71,16 +94,18 @@ in Google Secret Manager.
 | `GOOGLE_MAPS_API_KEY` | Google Maps Geocoding API key |
 | `OPENAI_API_KEY` | OpenAI API key for AI summaries |
 | `NOAA_API_KEY` | NOAA Climate Data Online token |
+| `JWT_SECRET` | Required unique secret; production refuses the development default |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID used to verify ID tokens |
 | `CORS_ORIGINS` | `https://climaterisk.io,https://www.climaterisk.io` |
 | `ENVIRONMENT` | `production` |
-| `APP_VERSION` | `1.0.0` |
+| `APP_VERSION` | `2.0.0` |
 
 Create secrets:
 
 ```bash
 gcloud secrets create DATABASE_URL --replication-policy=automatic
 echo -n 'postgresql+asyncpg://...' | gcloud secrets versions add DATABASE_URL --data-file=-
-# Repeat for GOOGLE_MAPS_API_KEY, OPENAI_API_KEY, NOAA_API_KEY
+# Repeat for GOOGLE_MAPS_API_KEY, OPENAI_API_KEY, NOAA_API_KEY, JWT_SECRET, GOOGLE_CLIENT_ID
 ```
 
 See `infrastructure/production.env.example` for the full template.
@@ -92,7 +117,10 @@ Set in Vercel Dashboard → Project → Settings → Environment Variables (Prod
 | Variable | Value |
 |----------|-------|
 | `NEXT_PUBLIC_API_URL` | `https://api.climaterisk.io` |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Your Google Maps API key |
+| `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox public token for the property map |
+| `AUTH_SECRET` | NextAuth secret |
+| `NEXTAUTH_URL` | Production frontend origin |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth app credentials |
 
 Or via CLI:
 
@@ -211,7 +239,8 @@ docker run --rm -p 8080:8080 \
   -e OPENAI_API_KEY=test \
   -e CORS_ORIGINS=https://climaterisk.io \
   -e ENVIRONMENT=production \
-  -e APP_VERSION=1.0.0 \
+  -e JWT_SECRET=a-long-random-production-secret \
+  -e APP_VERSION=2.0.0 \
   climate-risk-api
 
 curl http://localhost:8080/health

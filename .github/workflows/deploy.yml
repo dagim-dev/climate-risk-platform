@@ -1,8 +1,10 @@
+# Production deploy is deferred. This workflow is scaffolding only and does
+# not run on push — trigger it manually after cloud infrastructure, secrets,
+# and object storage for PDFs are provisioned. The app is not live.
 name: Deploy
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   backend-tests:
@@ -14,6 +16,12 @@ jobs:
           python-version: "3.12"
       - run: pip install -r backend/requirements.txt
       - run: cd backend && pytest tests/ -v
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:password@localhost:5432/climate_risk_test
+          GOOGLE_MAPS_API_KEY: test-key
+          OPENAI_API_KEY: test-key
+          JWT_SECRET: test-jwt-secret
+          APP_VERSION: 2.0.0
 
   deploy-frontend:
     needs: backend-tests
@@ -54,5 +62,5 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --port 8080 \
-            --set-env-vars "ENVIRONMENT=production,APP_VERSION=1.0.0,CORS_ORIGINS=https://climaterisk.io,https://www.climaterisk.io" \
-            --set-secrets "DATABASE_URL=DATABASE_URL:latest,GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,NOAA_API_KEY=NOAA_API_KEY:latest,SENTRY_DSN=SENTRY_DSN:latest"
+            --set-env-vars "ENVIRONMENT=production,APP_VERSION=2.0.0,CORS_ORIGINS=https://climaterisk.io,https://www.climaterisk.io" \
+            --set-secrets "DATABASE_URL=DATABASE_URL:latest,GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,NOAA_API_KEY=NOAA_API_KEY:latest,SENTRY_DSN=SENTRY_DSN:latest,JWT_SECRET=JWT_SECRET:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest"

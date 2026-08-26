@@ -37,7 +37,7 @@ Write:
 2. The single biggest risk driver for this address.
 3. A forward-looking statement beginning exactly: "Over the next 10–30 years..."
 4. A restatement of the {report.verdict} verdict with justification.
-5. A closing attribution naming NOAA, NASA EarthData, FEMA NFHL, and USGS.
+5. A closing attribution naming NOAA, FEMA NFHL, and USGS.
 """
 
     return system_prompt, user_prompt

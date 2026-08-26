@@ -92,6 +92,15 @@ async def get_hurricane_data(latitude: float, longitude: float) -> HurricaneData
         )
         return DEFAULT_HURRICANE_DATA
 
+    return parse_hurricane_response(data, latitude, longitude, cutoff_year)
+
+
+def parse_hurricane_response(
+    data: dict,
+    latitude: float,
+    longitude: float,
+    cutoff_year: int,
+) -> HurricaneData:
     features = data.get("features", [])
     if not features:
         return DEFAULT_HURRICANE_DATA

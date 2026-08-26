@@ -58,6 +58,10 @@ async def get_flood_zone_data(latitude: float, longitude: float) -> FloodZoneDat
         logger.warning("FEMA NFHL query failed for (%s, %s): %s", latitude, longitude, exc)
         return DEFAULT_LOW_RISK
 
+    return parse_flood_zone_response(data)
+
+
+def parse_flood_zone_response(data: dict) -> FloodZoneData:
     feature = _select_highest_risk_zone(data.get("features", []))
     if feature is None:
         return DEFAULT_LOW_RISK

@@ -78,6 +78,10 @@ JSON with a `results` array. Temperature values are in °F when
 
 ## NASA EarthData API (NEX-GDDP-CMIP6)
 
+> **Not used.** The backend does not query NASA. Heat projections use NOAA
+> trend extrapolation. This section is kept as a reference for a future
+> integration only. There is no `NASA_API_KEY` setting.
+
 ### Purpose
 
 Temperature **projections** (e.g. 2050 scenarios). Historical observations come
@@ -101,7 +105,7 @@ https://nex-gddp-cmip6.s3.amazonaws.com/NEX-GDDP-CMIP6/{MODEL}/{SCENARIO}/{VARIA
 ```
 
 **Earthdata Login** (for restricted DAAC granules): bearer token from
-https://urs.earthdata.nasa.gov/ — stored as `NASA_API_KEY` when needed.
+https://urs.earthdata.nasa.gov/. Not configured in this app.
 
 **CMR Search API** (metadata, no auth):
 
@@ -154,7 +158,7 @@ https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer
 
 ### Authentication
 
-None. Public, keyless ArcGIS REST. `FEMA_API_KEY` is optional and unused.
+None. Public, keyless ArcGIS REST. No FEMA API key is sent.
 
 ### Querying flood zone by latitude/longitude
 
@@ -252,8 +256,9 @@ polling of current-perimeter layers (refreshed every ~5 minutes).
 - Empty results mean low wildfire risk, not an error
 - Filter `FEATURE_CA LIKE '%Final%'` to exclude provisional perimeters
 - Dense fire regions (CA, OR) require pagination
-- Fuel type and WUI designation are **not** in this layer — use LANDFIRE or
-  heuristic classification from fire density
+- Fuel type and WUI designation are **not** in this layer. This app infers
+  WUI-like and fire-weather labels from fire count and lat/lng; it does not
+  query official SILVIS/USFS WUI maps or NWS fire weather zones.
 - Cloud/datacenter IPs may see connection resets without a `User-Agent`
 
 ---
@@ -295,7 +300,7 @@ the lookback window. Derive Saffir-Simpson category from `USA_WIND` (knots):
 | Hurricane | IBTrACS FeatureServer | None | `hurricane_data.py` |
 | Heat | NOAA CDO GHCND | `token` header | `heat_data.py` |
 | Wildfire | WFIGS Fire Perimeter History | None | `wildfire_data.py` |
-| Projections | NASA NEX-GDDP-CMIP6 (S3) | None on S3 | documented here; heat service uses trend extrapolation |
+| Projections | Not queried (NASA NEX-GDDP documented only) | — | heat service uses NOAA trend extrapolation |
 
 All spatial ArcGIS queries share the pattern: point geometry (`lon,lat`),
 `esriSpatialRelIntersects`, optional `distance` + `units` for radius searches.

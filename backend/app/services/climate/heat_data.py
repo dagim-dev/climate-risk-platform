@@ -117,11 +117,16 @@ async def _fetch_yearly_extreme_heat_days(
     )
     response.raise_for_status()
     results = response.json().get("results", [])
+    return count_extreme_heat_days(results)
+
+
+def count_extreme_heat_days(
+    results: list,
+    threshold_f: float = EXTREME_HEAT_THRESHOLD_F,
+) -> float:
     if not results:
         return 0.0
-
-    extreme_days = sum(1 for record in results if record.get("value", 0) >= EXTREME_HEAT_THRESHOLD_F)
-    return float(extreme_days)
+    return float(sum(1 for record in results if record.get("value", 0) >= threshold_f))
 
 
 async def get_heat_risk_data(latitude: float, longitude: float) -> HeatRiskData:

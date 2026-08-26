@@ -43,7 +43,7 @@ export default function Home() {
         </div>
 
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Powered by NOAA · NASA · FEMA · USGS
+          Powered by NOAA · FEMA · USGS
         </p>
       </section>
 

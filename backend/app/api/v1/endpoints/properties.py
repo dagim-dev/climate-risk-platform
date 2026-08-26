@@ -8,7 +8,6 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import (
     create_pdf_download_token,
-    user_can_download_pdf,
     verify_pdf_download_token,
 )
 from app.models.property import Property
@@ -113,12 +112,6 @@ async def generate_property_pdf(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if not user_can_download_pdf(current_user.subscription_tier):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="PDF download requires a paid subscription. Upgrade to access server-generated reports.",
-        )
-
     result = await db.execute(
         select(Property).where(
             Property.id == property_id,
