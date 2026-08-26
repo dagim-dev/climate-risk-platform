@@ -5,6 +5,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.api.deps import get_optional_user
+from app.core.database import get_db
 from app.schemas.address import Coordinates
 from app.schemas.risk import HazardScore
 from app.services.climate.flood_data import FloodZoneData
@@ -248,7 +250,22 @@ def test_analyze_endpoint_returns_report():
         place_id="denver-place-id",
     )
 
+    async def mock_get_db():
+        yield AsyncMock()
+
+    async def mock_optional_user():
+        return None
+
+    app.dependency_overrides[get_db] = mock_get_db
+    app.dependency_overrides[get_optional_user] = mock_optional_user
+
     with ExitStack() as stack:
+        stack.enter_context(
+            patch(
+                "app.api.v1.endpoints.risk.enforce_anonymous_analysis_limit",
+                new=AsyncMock(return_value=None),
+            )
+        )
         stack.enter_context(
             patch(
                 "app.api.v1.endpoints.risk.geocode_address",
@@ -286,6 +303,8 @@ def test_analyze_endpoint_returns_report():
             )
         )
         response = client.post("/api/v1/analyze", json={"address": "Denver, CO"})
+
+    app.dependency_overrides.clear()
 
     assert response.status_code == 200
     payload = response.json()
