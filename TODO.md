@@ -1760,9 +1760,9 @@ git checkout -b feature/stripe-billing
 
 ### Step 102 — Merge v2.0 and Tag
 
-- [ ] Merge all v2.0 feature branches into `develop`
-- [ ] Run the full regression test suite; fix any failures
-- [ ] Merge `develop` into `main` and tag:
+- [x] Merge all v2.0 feature branches into `develop`
+- [x] Run the full regression test suite; fix any failures
+- [x] Merge `develop` into `main` and tag:
   ```bash
   git checkout main
   git merge develop --no-ff -m "release: v2.0.0"
