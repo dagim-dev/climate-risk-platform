@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     PDF_SIGNED_URL_EXPIRE_MINUTES: int = 60
     API_BASE_URL: str = "http://localhost:8000"
 
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PRICE_INDIVIDUAL: str = ""
+    STRIPE_PRICE_PROFESSIONAL: str = ""
+    STRIPE_PRICE_BUSINESS: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [
