@@ -62,7 +62,7 @@ def _generate_with_weasyprint(html: str) -> bytes | None:
 
     try:
         return HTML(string=html).write_pdf()
-    except OSError as exc:
+    except Exception as exc:
         logger.warning("WeasyPrint PDF generation failed: %s", exc)
         return None
 
