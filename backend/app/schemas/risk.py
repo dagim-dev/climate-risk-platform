@@ -10,6 +10,15 @@ class HazardScore(BaseModel):
     primary_factors: List[str]
 
 
+class TrendPoint(BaseModel):
+    year: int
+    flood_score: int = Field(..., ge=0, le=100)
+    hurricane_score: int = Field(..., ge=0, le=100)
+    heat_score: int = Field(..., ge=0, le=100)
+    wildfire_score: int = Field(..., ge=0, le=100)
+    is_projection: bool = False
+
+
 class ClimateRiskReport(BaseModel):
     address: str
     latitude: float
@@ -22,3 +31,4 @@ class ClimateRiskReport(BaseModel):
     verdict: str
     ai_summary: Optional[str] = None
     generated_at: str
+    historical_trend: List[TrendPoint] = Field(default_factory=list)

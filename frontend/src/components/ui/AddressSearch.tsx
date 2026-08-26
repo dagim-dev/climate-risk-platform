@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
+import { useSession } from "next-auth/react";
 import { analyzeAddress } from "@/lib/api-client";
 import type { ClimateRiskReport } from "@/types/risk";
 
@@ -11,6 +12,7 @@ interface AddressSearchProps {
 
 export function AddressSearch({ onResult, onLoadingChange }: AddressSearchProps) {
   const inputId = useId();
+  const { data: session } = useSession();
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +30,7 @@ export function AddressSearch({ onResult, onLoadingChange }: AddressSearchProps)
     setError(null);
     setLoadingState(true);
     try {
-      const report = await analyzeAddress(trimmed);
+      const report = await analyzeAddress(trimmed, session?.accessToken);
       onResult(report);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");

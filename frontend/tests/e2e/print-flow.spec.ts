@@ -22,7 +22,7 @@ test("report page exposes print action for save-as-PDF flow", async ({ page }) =
     window.print = () => {
       called = true;
     };
-    button.click();
+    (button as HTMLElement).click();
     window.print = originalPrint;
     if (!called) {
       throw new Error("window.print was not invoked");

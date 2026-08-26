@@ -8,6 +8,15 @@ export interface HazardScore {
   primary_factors: string[];
 }
 
+export interface TrendPoint {
+  year: number;
+  flood_score: number;
+  hurricane_score: number;
+  heat_score: number;
+  wildfire_score: number;
+  is_projection: boolean;
+}
+
 export interface ClimateRiskReport {
   address: string;
   latitude: number;
@@ -20,4 +29,5 @@ export interface ClimateRiskReport {
   verdict: Verdict;
   ai_summary?: string;
   generated_at: string;
+  historical_trend?: TrendPoint[];
 }
