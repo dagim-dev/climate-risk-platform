@@ -55,15 +55,17 @@ export const authConfig: NextAuthConfig = {
   },
   secret: process.env.AUTH_SECRET,
   callbacks: {
-    async signIn({ user, account, profile }) {
-      if (account?.provider === "google" && user.email && API_BASE) {
+    async signIn({ user, account }) {
+      if (account?.provider === "google" && API_BASE) {
+        if (!account.id_token) {
+          return false;
+        }
+
         const response = await fetch(`${API_BASE}/api/v1/auth/oauth`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            email: user.email,
-            name: user.name ?? (profile as { name?: string } | undefined)?.name,
-            google_id: account.providerAccountId,
+            id_token: account.id_token,
           }),
         });
 

@@ -28,6 +28,7 @@ DEFAULT_WILDFIRE_DATA = WildfireData()
 
 
 def _classify_wui(fire_count: int, radius_km: float = 50.0) -> str:
+    """Infer a WUI-like label from fire density. Not an official SILVIS/USFS WUI map."""
     area_km2 = 3.14159 * radius_km * radius_km
     density = fire_count / max(area_km2, 1.0) * 100
 

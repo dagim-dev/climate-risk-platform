@@ -4,16 +4,12 @@ const dataSources = [
     detail: "Weather observations, extreme heat records, and hurricane history.",
   },
   {
-    name: "NASA EarthData",
-    detail: "Satellite-derived environmental and wildfire signals.",
-  },
-  {
     name: "FEMA NFHL",
     detail: "Official flood-zone and flood-hazard information.",
   },
   {
-    name: "USGS",
-    detail: "Geographic and hazard datasets that support location-level analysis.",
+    name: "USGS / NIFC fire perimeters",
+    detail: "Historical wildfire perimeter counts near the property.",
   },
 ] as const;
 
@@ -30,13 +26,18 @@ export default function AboutPage() {
           </h1>
           <p className="mt-6 max-w-3xl text-lg leading-8 text-white/80">
             ClimateRisk helps investors, developers, and lenders understand
-            address-level climate exposure before capital is committed.
+            address-level climate exposure before capital is committed. The
+            platform is free for everyone.
           </p>
         </div>
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
         <h2 className="text-3xl font-semibold text-brand-primary">Data sources</h2>
+        <p className="mt-4 max-w-3xl leading-7 text-zinc-600">
+          Scores are built from NOAA, FEMA, and USGS/NIFC public datasets.
+          NASA EarthData is not queried today.
+        </p>
         <div className="mt-8 grid gap-5 sm:grid-cols-2">
           {dataSources.map((source) => (
             <article
@@ -58,6 +59,17 @@ export default function AboutPage() {
             0–100 hazard scores. Weighted scores produce an overall result and a
             Go, Caution, or Avoid verdict.
           </p>
+          <ul className="mt-6 list-disc space-y-3 pl-6 text-zinc-700">
+            <li>
+              Historical trend points are interpolated from the current score.
+              They are not independent analyses of 2000, 2010, or 2020 data.
+            </li>
+            <li>
+              Wildland-urban interface (WUI) and fire-weather labels are inferred
+              from nearby fire counts and lat/lng, not official WUI or NWS fire
+              weather zone maps.
+            </li>
+          </ul>
         </div>
       </section>
 

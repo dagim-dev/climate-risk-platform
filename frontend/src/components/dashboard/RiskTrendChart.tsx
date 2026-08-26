@@ -38,7 +38,8 @@ export function RiskTrendChart({ trend }: RiskTrendChartProps) {
       <div>
         <h3 className="text-lg font-semibold text-brand-primary">Risk Trend Timeline</h3>
         <p className="text-sm text-zinc-500">
-          Historical checkpoints and future projections for all four hazard scores.
+          Historical points (2000–present) are interpolated from the current score,
+          not independent historical analyses. Future years are simple projections.
         </p>
       </div>
 

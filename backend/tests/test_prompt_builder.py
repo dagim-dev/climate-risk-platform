@@ -51,5 +51,6 @@ def test_build_risk_prompt_includes_report_values_and_requested_sections():
         assert value in user_prompt
 
     assert "Over the next 10–30 years..." in user_prompt
-    assert "NOAA, NASA EarthData, FEMA NFHL, and USGS" in user_prompt
+    assert "NOAA, FEMA NFHL, and USGS" in user_prompt
+    assert "EarthData" not in user_prompt
     assert "No primary factors reported" in user_prompt
