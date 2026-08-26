@@ -11,6 +11,7 @@ from app.services.climate.wildfire_data import get_wildfire_data
 from app.services.scoring.flood_scorer import score_flood_risk
 from app.services.scoring.heat_scorer import score_heat_risk
 from app.services.scoring.hurricane_scorer import score_hurricane_risk
+from app.services.scoring.trend_builder import build_historical_trend
 from app.services.scoring.wildfire_scorer import score_wildfire_risk
 from app.services.scoring.helpers import clamp_score
 
@@ -64,6 +65,18 @@ async def build_risk_report(coordinates: Coordinates) -> ClimateRiskReport:
         wildfire_risk,
     )
 
+    historical_trend = build_historical_trend(
+        flood_risk,
+        hurricane_risk,
+        heat_risk,
+        wildfire_risk,
+        heat_data,
+        hurricane_data,
+        wildfire_data,
+        latitude,
+        longitude,
+    )
+
     return ClimateRiskReport(
         address=coordinates.formatted_address,
         latitude=latitude,
@@ -76,4 +89,5 @@ async def build_risk_report(coordinates: Coordinates) -> ClimateRiskReport:
         verdict=score_to_verdict(overall_risk_score),
         ai_summary=None,
         generated_at=datetime.now(timezone.utc).isoformat(),
+        historical_trend=historical_trend,
     )

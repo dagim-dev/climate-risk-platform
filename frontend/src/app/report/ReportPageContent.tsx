@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { VerdictBadge } from "@/components/dashboard/VerdictBadge";
+import { RiskTrendChart } from "@/components/dashboard/RiskTrendChart";
 import {
   loadReportFromSession,
   loadReportFromUrlParam,
@@ -134,6 +135,12 @@ export function ReportPageContent() {
           );
         })}
       </section>
+
+      {report.historical_trend && report.historical_trend.length > 0 && (
+        <section className="report-section no-print">
+          <RiskTrendChart trend={report.historical_trend} />
+        </section>
+      )}
 
       {report.ai_summary && (
         <section className="report-section space-y-2">
