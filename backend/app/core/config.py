@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60 * 24 * 7
     ANONYMOUS_DAILY_ANALYSIS_LIMIT: int = 3
+    PDF_STORAGE_DIR: str = "storage/pdfs"
+    PDF_SIGNED_URL_EXPIRE_MINUTES: int = 60
+    API_BASE_URL: str = "http://localhost:8000"
 
     @property
     def cors_origins_list(self) -> list[str]:

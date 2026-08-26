@@ -31,6 +31,7 @@ class UserResponse(BaseModel):
     id: int
     email: str
     name: Optional[str]
+    subscription_tier: str = "free"
 
     class Config:
         from_attributes = True

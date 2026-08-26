@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 import { analyzeAddress, deleteProperty, listProperties, type SavedPropertyListItem } from "@/lib/api-client";
+import { DownloadPdfButton } from "@/components/dashboard/DownloadPdfButton";
 import { saveReport } from "@/lib/report-storage";
 
 function formatDate(iso: string): string {
@@ -136,7 +137,7 @@ export default function PropertiesPage() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-start gap-2">
                 <button
                   type="button"
                   onClick={() => handleRerun(property)}
@@ -145,6 +146,7 @@ export default function PropertiesPage() {
                 >
                   {rerunningId === property.id ? "Re-running..." : "Re-run Analysis"}
                 </button>
+                <DownloadPdfButton propertyId={property.id} existingPdfUrl={property.pdf_url} />
                 <button
                   type="button"
                   onClick={() => handleDelete(property.id)}
