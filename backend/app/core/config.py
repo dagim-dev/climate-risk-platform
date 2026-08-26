@@ -13,6 +13,12 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     SENTRY_DSN: str = ""
 
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PRICE_INDIVIDUAL: str = ""
+    STRIPE_PRICE_PROFESSIONAL: str = ""
+    STRIPE_PRICE_BUSINESS: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [
