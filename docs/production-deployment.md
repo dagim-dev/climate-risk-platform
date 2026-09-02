@@ -117,7 +117,6 @@ Set in Vercel Dashboard → Project → Settings → Environment Variables (Prod
 | Variable | Value |
 |----------|-------|
 | `NEXT_PUBLIC_API_URL` | `https://api.climaterisk.io` |
-| `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox public token for the property map |
 | `AUTH_SECRET` | NextAuth secret |
 | `NEXTAUTH_URL` | Production frontend origin |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth app credentials |

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Removed
+
+- Interactive property map (Mapbox) from the risk dashboard
+
 ## [2.0.0] - 2026-08-26
 
 ### Added
@@ -18,7 +22,7 @@
 
 ### Changed
 
-- Product is free for everyone: Stripe, subscription tiers, and anonymous analysis caps removed
+- Product is free for everyone: subscription tiers and anonymous analysis caps removed
 - App version is `2.0.0`
 - Production `JWT_SECRET` is required (development default is rejected)
 - Attribution names NOAA, FEMA, and USGS only (NASA is not queried)

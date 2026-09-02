@@ -71,9 +71,8 @@ The platform is designed to turn raw climate data into **actionable business int
 | **Saved Properties** | Save and revisit past analyses from a personal property dashboard |
 | **Server PDF Reports** | Server-generated PDFs stored on local disk with signed download URLs |
 | **Historical Risk Trends** | Interpolated timeline from 2000 to present with 2030/2040/2050 projections |
-| **Interactive Maps** | Mapbox-powered property map with FEMA flood zone polygon overlay |
 
-The product is **free**. There is no paid tier, Stripe billing, or feature gating.
+The product is **free**. There is no paid tier or feature gating.
 
 <br>
 
@@ -101,7 +100,6 @@ The product is **free**. There is no paid tier, Stripe billing, or feature gatin
 | **Backend** | Python 3.12, FastAPI, Uvicorn |
 | **Database** | PostgreSQL 16, SQLAlchemy (async), Alembic |
 | **AI** | OpenAI GPT-4o-mini |
-| **Mapping** | Mapbox GL JS |
 | **Authentication** | NextAuth.js |
 | **Data Sources** | NOAA CDO, FEMA NFHL, USGS/NIFC wildfire perimeters |
 | **Infrastructure** | AWS / Google Cloud (backend), Vercel (frontend) |
@@ -191,7 +189,6 @@ cd ..
 |---|---|:---:|
 | `NEXT_PUBLIC_API_URL` | Base URL of the FastAPI backend | ✅ |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps JavaScript API key | Optional |
-| `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox public token for the property map | ✅ for maps |
 | `AUTH_SECRET` | NextAuth secret | ✅ |
 | `NEXTAUTH_URL` | Frontend origin (`http://localhost:3000` locally) | ✅ |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | ✅ for Google sign-in |

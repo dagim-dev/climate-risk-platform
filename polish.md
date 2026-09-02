@@ -9,13 +9,10 @@
 
 ## Strip paid-tier leftovers
 
-- [x] Delete `backend/app/api/v1/endpoints/billing.py`
-- [x] Delete `backend/app/services/billing/stripe_client.py`
-- [x] Delete `backend/app/services/billing/feature_gates.py`
-- [x] Delete `backend/app/schemas/billing.py` if unused
-- [x] Remove `stripe` from `backend/requirements.txt`
-- [x] Remove Stripe / subscription leftovers from the User model and schema
-  - [x] Drop `stripe_customer_id`, `stripe_subscription_id`, and `subscription_tier` (or stop exposing them)
+- [x] Delete billing API endpoints, services, and schemas
+- [x] Remove billing package from `backend/requirements.txt`
+- [x] Remove subscription leftovers from the User model and schema
+  - [x] Drop billing customer/subscription IDs and `subscription_tier` (or stop exposing them)
   - [x] Add an Alembic migration to drop those columns if you keep the free-product model
 - [x] Remove anonymous analysis cap so it matches “unlimited for everyone”
   - [x] Remove `ANONYMOUS_DAILY_ANALYSIS_LIMIT` from `config.py` and `.env.example`
@@ -37,7 +34,7 @@
   - [x] Replace `YOUR_USERNAME` with the real GitHub org/user
   - [x] Set the version badge to v2.0.0 (not `1.0.0-MVP`)
   - [x] Mark v2.0 features as shipped, not planned
-  - [x] Remove Stripe / paid-tier / subscription language
+  - [x] Remove paid-tier / subscription language
   - [x] Align the project-structure tree with the actual frontend (auth, properties, pricing, map, trends)
   - [x] Document Mapbox (`NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN`) and auth env vars
 - [x] Update `CHANGELOG.md` with a `[2.0.0]` section

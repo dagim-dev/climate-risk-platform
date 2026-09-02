@@ -8,7 +8,6 @@ const features = [
   "Save unlimited properties",
   "PDF report download",
   "Historical trend charts",
-  "Interactive property map with FEMA flood zones",
 ];
 
 export default function PricingPage() {
