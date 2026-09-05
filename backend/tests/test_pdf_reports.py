@@ -6,7 +6,6 @@ from jose import jwt
 from app.core.config import settings
 from app.core.security import (
     create_pdf_download_token,
-    user_can_download_pdf,
     verify_pdf_download_token,
 )
 from app.schemas.risk import ClimateRiskReport, HazardScore
@@ -33,13 +32,6 @@ def _sample_report() -> ClimateRiskReport:
         ai_summary="Moderate risk across hazards.",
         generated_at=datetime.now(timezone.utc).isoformat(),
     )
-
-
-def test_user_can_download_pdf_for_paid_tiers():
-    assert user_can_download_pdf("individual") is True
-    assert user_can_download_pdf("professional") is True
-    assert user_can_download_pdf("business") is True
-    assert user_can_download_pdf("free") is False
 
 
 def test_pdf_download_token_round_trip():

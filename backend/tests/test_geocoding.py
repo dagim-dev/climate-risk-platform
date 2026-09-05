@@ -13,6 +13,31 @@ VALID_GEOCODE_RESPONSE = {
             "formatted_address": "1600 Amphitheatre Pkwy, Mountain View, CA 94043, USA",
             "place_id": "ChIJ2eUgeAK6j4ARbn5u_wAGqWA",
             "geometry": {"location": {"lat": 37.4224764, "lng": -122.0842499}},
+            "address_components": [
+                {
+                    "long_name": "United States",
+                    "short_name": "US",
+                    "types": ["country", "political"],
+                }
+            ],
+        }
+    ],
+}
+
+NON_US_GEOCODE_RESPONSE = {
+    "status": "OK",
+    "results": [
+        {
+            "formatted_address": "Toronto, ON, Canada",
+            "place_id": "ChIJpTvG15DL1IkRd8S0KlBVNTI",
+            "geometry": {"location": {"lat": 43.6532, "lng": -79.3832}},
+            "address_components": [
+                {
+                    "long_name": "Canada",
+                    "short_name": "CA",
+                    "types": ["country", "political"],
+                }
+            ],
         }
     ],
 }
@@ -48,6 +73,18 @@ async def test_valid_us_address_returns_coordinates():
     assert result.longitude == -122.0842499
     assert result.formatted_address
     assert result.place_id
+
+
+@pytest.mark.asyncio
+async def test_non_us_address_raises_value_error():
+    mock_http_client = _mock_httpx_client(NON_US_GEOCODE_RESPONSE)
+
+    with patch(
+        "app.services.geocoding.httpx.AsyncClient",
+        return_value=mock_http_client,
+    ):
+        with pytest.raises(ValueError, match="Please enter a valid US address."):
+            await geocode_address("Toronto, ON, Canada")
 
 
 @pytest.mark.asyncio

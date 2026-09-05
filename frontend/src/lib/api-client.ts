@@ -17,7 +17,6 @@ export interface UserProfile {
   id: number;
   email: string;
   name: string | null;
-  subscription_tier: string;
 }
 
 async function authFetch(
@@ -123,12 +122,6 @@ export async function getCurrentUser(accessToken: string): Promise<UserProfile> 
   return (await response.json()) as UserProfile;
 }
 
-const PAID_TIERS = new Set(["individual", "professional", "business"]);
-
-export function canDownloadPdf(subscriptionTier: string): boolean {
-  return PAID_TIERS.has(subscriptionTier);
-}
-
 export async function generatePropertyPdf(
   propertyId: number,
   accessToken: string,
@@ -136,19 +129,6 @@ export async function generatePropertyPdf(
   const response = await authFetch(`/properties/${propertyId}/pdf`, accessToken, {
     method: "POST",
   });
-
-  if (response.status === 403) {
-    let detail = "PDF download requires a paid subscription.";
-    try {
-      const error = (await response.json()) as { detail?: string };
-      if (error.detail) detail = error.detail;
-    } catch {
-      // ignore
-    }
-    const err = new Error(detail) as Error & { code?: string };
-    err.code = "UPGRADE_REQUIRED";
-    throw err;
-  }
 
   if (!response.ok) {
     throw new Error("Failed to generate PDF");

@@ -150,7 +150,7 @@ export function ReportPageContent() {
       )}
 
       <footer className="report-section border-t border-zinc-200 pt-4 text-center text-xs text-zinc-500">
-        Risk data sourced from NOAA, NASA EarthData, FEMA NFHL, and USGS.
+        Risk data sourced from NOAA, FEMA NFHL, and USGS.
       </footer>
     </div>
   );

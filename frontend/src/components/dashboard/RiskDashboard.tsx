@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import type { ClimateRiskReport } from "@/types/risk";
 import { AISummary } from "@/components/dashboard/AISummary";
-import { PropertyMap } from "@/components/dashboard/PropertyMap";
 import { RiskTrendChart } from "@/components/dashboard/RiskTrendChart";
 import { SavePropertyButton } from "@/components/dashboard/SavePropertyButton";
 import { ScoreCard } from "@/components/dashboard/ScoreCard";
@@ -71,14 +70,6 @@ export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) 
         <RiskTrendChart trend={report.historical_trend} />
       )}
 
-      <PropertyMap
-        latitude={report.latitude}
-        longitude={report.longitude}
-        address={report.address}
-        verdict={report.verdict}
-        overallScore={report.overall_risk_score}
-      />
-
       <SavePropertyButton report={report} />
 
       <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-between">
@@ -99,7 +90,7 @@ export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) 
       </div>
 
       <footer className="border-t border-zinc-200 pt-4 text-center text-xs text-zinc-500">
-        Risk data sourced from NOAA, NASA EarthData, FEMA NFHL, and USGS.
+        Risk data sourced from NOAA, FEMA NFHL, and USGS.
       </footer>
     </div>
   );

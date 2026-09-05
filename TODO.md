@@ -1,11 +1,20 @@
 # Climate Risk Intelligence Platform — TODO
 
+> **Product Model:** This is a **completely free** v2.0 platform. There is no paid
+> tier, no subscription billing, and no paywalled features. All functionality
+> (analysis, saved properties, PDF reports, trend charts, maps) is available
+> to every user at no cost. Anonymous analysis is unlimited.
+>
+> **Data honesty:** NASA is not queried. Historical trend points are interpolated
+> from the current score. WUI and fire-weather labels are inferred from fire
+> count and lat/lng. PDFs are stored on local disk.
+
 > **Workflow Rules (Read Before Starting)**
 >
 > - `main` is **production-only**. Never commit directly to `main`.
 > - `develop` is the **integration branch**. All features merge here first.
 > - Every feature or fix gets its own branch, cut from `develop`.
-> - Pull Requests (PRs) are required to merge any branch into `develop`.
+> - Do not open PRs unless absolutely necessary; merge locally into `develop`.
 > - Only `develop` merges into `main` at version release checkpoints.
 > - Every version release on `main` must be **tagged** (e.g., `git tag -a v1.0.0`).
 > - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):
@@ -833,7 +842,7 @@ git checkout -b feature/risk-scoring-engine
 - [x] Create `backend/app/services/scoring/aggregator.py`:
   - Combine the four hazard scores using weighted averaging:
     - Flood: 30%, Hurricane: 30%, Heat: 20%, Wildfire: 20%
-    - (Weights are reasonable defaults — will become configurable in v3.0)
+    - (Weights are reasonable defaults)
   - Apply the Go / Caution / Avoid verdict thresholds:
     - 0–35 → **"Go"**
     - 36–65 → **"Caution"**
@@ -932,7 +941,7 @@ git commit -m "feat(scoring): implement flood, hurricane, heat, and wildfire sco
 
 > **Scope Lock:** This version builds the complete frontend user interface and
 > connects it to the v0.2-alpha backend. No AI summaries. No user accounts.
-> No PDF generation. No payment flows.
+> No PDF generation.
 
 ---
 
@@ -952,8 +961,8 @@ git checkout -b feature/app-layout
 
 - [x] Create `frontend/src/components/layout/Header.tsx`:
   - Platform logo (text placeholder: "ClimateRisk")
-  - Navigation links: "Home", "About", "Pricing"
-  - "Sign In" button (non-functional placeholder — enabled in v2.0)
+  - Navigation links: "Home", "About"
+  - "Sign In" button
 - [x] Create `frontend/src/components/layout/Footer.tsx`:
   - Copyright line
   - Links: Privacy Policy, Terms of Service, Contact
@@ -1185,7 +1194,7 @@ git commit -m "feat(frontend): build risk dashboard with score cards, verdict ba
 ```bash
 git checkout develop
 git pull origin develop
-git checkout -b feature/about-pricing-pages
+git checkout -b feature/about-page
 ```
 
 
@@ -1201,22 +1210,11 @@ git checkout -b feature/about-pricing-pages
 
 
 
-### Step 67 — Create the Pricing Page
-
-- [x] Create `frontend/src/app/pricing/page.tsx`:
-  - Three-column pricing table: Individual ($49/mo), Professional ($99/mo),
-  Business ($500–$5,000/mo)
-  - Feature comparison rows per tier
-  - "Get Started" CTA buttons (non-functional placeholder — enabled in v2.0)
-  - Enterprise tier contact form link at the bottom
-
-
-
 ### Step 68 — Commit: Static Pages
 
 ```bash
 git add .
-git commit -m "feat(frontend): add about and pricing pages with feature comparison table"
+git commit -m "feat(frontend): add about page with methodology overview and data source documentation"
 ```
 
 ---
@@ -1230,7 +1228,7 @@ git commit -m "feat(frontend): add about and pricing pages with feature comparis
   1. `feature/app-layout` → `develop`
   2. `feature/address-search-ui` → `develop`
   3. `feature/risk-dashboard` → `develop`
-  4. `feature/about-pricing-pages` → `develop`
+  4. `feature/about-page` → `develop`
 - [x] Pull updated `develop` and tag:
   ```bash
   git checkout develop
@@ -1252,8 +1250,7 @@ git commit -m "feat(frontend): add about and pricing pages with feature comparis
 ## v1.0-MVP — Full MVP Release
 
 > **Scope Lock:** This version adds AI-generated risk summaries, a printable
-> report view, end-to-end tests, and production deployment with monitoring.
-> No user accounts. No payment processing. No saved properties.
+> report view, and end-to-end tests. No user accounts. No saved properties.
 
 ---
 
@@ -1469,131 +1466,22 @@ git commit -m "test: add Playwright E2E tests for address search, risk dashboard
 
 
 
-### Step 86 — Production Deployment Setup
-
-> **On hold:** Production deployment (Steps 86+) is deferred. Current focus is local-only development.
-
-```bash
-git checkout develop
-git pull origin develop
-git checkout -b chore/production-setup
-```
-
-
-
-### Step 87 — Provision Cloud Infrastructure
-
-- [ ] **Frontend:** Connect the GitHub repo to Vercel; set it to auto-deploy
-  ```
-  from `main`
-  ```
-- [ ] **Backend:** Deploy FastAPI to AWS Elastic Beanstalk, AWS ECS, or Google
-  ```
-  Cloud Run — choose based on team familiarity
-  ```
-- [ ] **Database:** Provision a managed PostgreSQL instance on AWS RDS,
-  ```
-  Supabase, or Google Cloud SQL
-  ```
-
-
-
-### Step 88 — Configure Production Environment Variables
-
-- [ ] Set all secrets in the cloud provider's secret manager (never in code):
-  - `DATABASE_URL`, `GOOGLE_MAPS_API_KEY`, `OPENAI_API_KEY`, `NOAA_API_KEY`
-- [ ] Set `NEXT_PUBLIC_API_URL` in Vercel to point to the live backend URL
-- [ ] Update the backend CORS `allow_origins` list to include the production
-  ```
-  frontend domain
-  ```
-
-
-
-### Step 89 — Configure Domain and SSL
-
-- [ ] Purchase a domain (e.g., `climaterisk.io`)
-- [ ] Point DNS to Vercel for the frontend
-- [ ] Point DNS to your cloud provider for the backend API
-- [ ] Verify SSL/TLS certificates are active on both subdomains
-
-
-
-### Step 90 — Run Database Migrations on Production
-
-```bash
-# From the backend directory, targeting the production DATABASE_URL
-alembic upgrade head
-```
-
-
-
-### Step 91 — Set Up Error Monitoring (Sentry)
-
-- [ ] Create a free Sentry.io account and two projects: one for FastAPI, one
-  ```
-  for Next.js
-  ```
-- [x] Install and configure `sentry-sdk` in the FastAPI backend
-- [x] Install and configure `@sentry/nextjs` in the Next.js frontend
-- [ ] Trigger a test error in each environment and confirm it appears in the
-  ```
-  Sentry dashboard
-  ```
-
-
-
-### Step 92 — Add the GitHub Actions Deployment Workflow
-
-- [x] Create `.github/workflows/deploy.yml`:
-  - Trigger: push to `main` only
-  - Job 1: run backend tests (`pytest`) before deploying
-  - Job 2: deploy frontend to Vercel via Vercel CLI
-  - Job 3: deploy backend to your cloud provider
-
-
-
-### Step 93 — Commit: Production Configuration
-
-```bash
-git add .
-git commit -m "chore: add production deployment config, Sentry error monitoring, and deploy GitHub Actions workflow"
-```
-
----
-
-
-
-### Step 94 — Pre-Launch QA Checklist
-
-- [ ] Test 10 diverse addresses in the **production** environment — not local
-- [ ] Verify AI summaries load within 10 seconds
-- [x] Verify all four score cards render with the correct color coding
-- [x] Verify the print/PDF export produces a clean, readable document
-- [ ] Verify `GET /health` returns `200 OK` from the production backend URL
-- [x] Verify no raw error messages or stack traces are exposed to the user
-- [x] Verify the "Analyze Another Address" reset flow works correctly
-- [ ] Verify Sentry captures errors when you intentionally break a request
-- [x] Finalize and update `README.md` with production URLs and full setup guide
-- [x] Update `CHANGELOG.md` with the v1.0 release entry
-
-
-
 ### Step 95 — Merge `develop` into `main` and Tag v1.0.0
+
+- [x] Merged `develop` into `main` and tagged `v1.0.0`
 
 ```bash
 # Merge all remaining v1.0 branches into develop first, then:
 git checkout main
 git pull origin main
 git merge develop --no-ff -m "release: v1.0.0 MVP"
-git tag -a v1.0.0 -m "v1.0.0: full MVP with risk scoring, AI summaries, report export, and production deployment"
+git tag -a v1.0.0 -m "v1.0.0: full MVP with risk scoring, AI summaries, report export, and E2E tests"
 git push origin main
 git push origin v1.0.0
 ```
 
-> ✅ **v1.0-MVP Complete.** Publicly deployed, production-grade application.
-> Users enter any U.S. address and receive four climate risk scores, a
-> Go/Caution/Avoid verdict, an AI-generated summary, and a printable report.
+> ✅ **v1.0-MVP Complete.** Full MVP with risk scoring, AI summaries,
+> and printable reports.
 
 ---
 
@@ -1601,11 +1489,10 @@ git push origin v1.0.0
 
 
 
-## v2.0 — Paid Product
+## v2.0 — Full Product
 
 > **Scope Lock:** This version adds user authentication, saved properties,
-> server-generated PDF reports, historical trend data, an interactive map,
-> and Stripe subscription billing. No multi-tenant enterprise features yet.
+> server-generated PDF reports, historical trend data, and an interactive map.
 
 ---
 
@@ -1618,15 +1505,15 @@ git checkout develop && git pull origin develop
 git checkout -b feature/user-auth
 ```
 
-- [ ] Install and configure NextAuth.js with email/password and Google OAuth providers
-- [ ] Create `User` SQLAlchemy model with Alembic migration
-- [ ] Build: Sign Up page, Sign In page, Sign Out handler
-- [ ] Protect `/report` and future saved-property routes: redirect unauthenticated
+- [x] Install and configure NextAuth.js with email/password and Google OAuth providers
+- [x] Create `User` SQLAlchemy model with Alembic migration
+- [x] Build: Sign Up page, Sign In page, Sign Out handler
+- [x] Protect `/report` and future saved-property routes: redirect unauthenticated
   ```
   users to Sign In
   ```
-- [ ] For unauthenticated users: cap usage at 3 analyses per day (IP-based)
-- [ ] **Commit:**
+- [x] Allow unlimited analyses for all users (no usage caps)
+- [x] **Commit:**
   ```bash
   git add . && git commit -m "feat(auth): add user authentication with NextAuth, email/password, and Google OAuth"
   ```
@@ -1640,20 +1527,20 @@ git checkout develop && git pull origin develop
 git checkout -b feature/saved-properties
 ```
 
-- [ ] Create `Property` SQLAlchemy model linked to `User` (FK) with Alembic migration
-- [ ] Backend endpoints: `POST /properties`, `GET /properties`,
+- [x] Create `Property` SQLAlchemy model linked to `User` (FK) with Alembic migration
+- [x] Backend endpoints: `POST /properties`, `GET /properties`,
   ```
   `DELETE /properties/{id}`
   ```
-- [ ] Frontend: "Save This Property" button on the dashboard (requires sign-in;
+- [x] Frontend: "Save This Property" button on the dashboard (requires sign-in;
   ```
   unauthenticated users see a prompt to create an account)
   ```
-- [ ] Frontend: "My Properties" page listing saved analyses with last-updated date
+- [x] Frontend: "My Properties" page listing saved analyses with last-updated date
   ```
   and quick re-run option
   ```
-- [ ] **Commit:**
+- [x] **Commit:**
   ```bash
   git add . && git commit -m "feat(properties): add saved properties dashboard with user-scoped CRUD"
   ```
@@ -1667,20 +1554,14 @@ git checkout develop && git pull origin develop
 git checkout -b feature/pdf-reports
 ```
 
-- [ ] Add PDF generation to the backend (use `weasyprint` or Puppeteer via a
+- [x] Add PDF generation to the backend (use `weasyprint` or Puppeteer via a
   ```
   serverless function) to convert the report HTML to a PDF
   ```
-- [ ] Store generated PDFs in an S3 bucket or Google Cloud Storage; return a
-  ```
-  signed URL to the frontend
-  ```
-- [ ] Add the PDF to the `Property` model as an optional `pdf_url` field
-- [ ] Frontend: "Download PDF" button for authenticated subscribers; show an
-  ```
-  upgrade prompt for free users
-  ```
-- [ ] **Commit:**
+- [x] Store generated PDFs on local filesystem with JWT signed download URLs
+- [x] Add the PDF to the `Property` model as an optional `pdf_url` field
+- [x] Frontend: "Download PDF" button available to all authenticated users
+- [x] **Commit:**
   ```bash
   git add . && git commit -m "feat(reports): add server-side PDF generation with cloud storage and signed download URLs"
   ```
@@ -1694,16 +1575,16 @@ git checkout develop && git pull origin develop
 git checkout -b feature/historical-trends
 ```
 
-- [ ] Extend data services to return historical scores at 2000, 2010, and 2020
+- [x] Extend data services to return historical scores at 2000, 2010, and 2020
   ```
   checkpoints (in addition to current)
   ```
-- [ ] Add `historical_trend: list[TrendPoint]` to the `ClimateRiskReport` schema
-- [ ] Frontend: Line chart (Recharts) showing the four hazard scores over time
+- [x] Add `historical_trend: list[TrendPoint]` to the `ClimateRiskReport` schema
+- [x] Frontend: Line chart (Recharts) showing the four hazard scores over time
   ```
   with future projections at 2030, 2040, 2050
   ```
-- [ ] **Commit:**
+- [x] **Commit:**
   ```bash
   git add . && git commit -m "feat(trends): add historical risk trend data and timeline chart with future projections"
   ```
@@ -1717,225 +1598,30 @@ git checkout develop && git pull origin develop
 git checkout -b feature/interactive-map
 ```
 
-- [ ] Integrate Mapbox GL JS (or Google Maps JavaScript API) into the dashboard
-- [ ] Display the analyzed property as a risk-colored pin on the map
-- [ ] Overlay FEMA flood zone polygon layer on the map for context
-- [ ] **Commit:**
+- [x] Integrate Mapbox GL JS (or Google Maps JavaScript API) into the dashboard
+- [x] Display the analyzed property as a risk-colored pin on the map
+- [x] Overlay FEMA flood zone polygon layer on the map for context
+- [x] **Commit:**
   ```bash
   git add . && git commit -m "feat(map): add interactive Mapbox property map with FEMA flood zone overlay"
   ```
 
 
 
-### Step 101 — Stripe Subscription Billing
-
-```bash
-git checkout develop && git pull origin develop
-git checkout -b feature/stripe-billing
-```
-
-- [ ] Create Stripe account; configure three Products and Prices (Individual,
-  ```
-  Professional, Business)
-  ```
-- [ ] Backend: Stripe webhook endpoint to handle `checkout.session.completed`,
-  ```
-  `customer.subscription.deleted`, and `invoice.payment_failed` events
-  ```
-- [ ] Attach Stripe `customer_id` and `subscription_tier` to the `User` model
-- [ ] Frontend: Pricing page CTA buttons now link to Stripe Checkout
-- [ ] Enforce feature gates by subscription tier:
-  ```
-  - Free: 3 analyses/day, no save, no PDF download
-  - Individual: 50 analyses/month, save up to 25 properties, PDF download
-  - Professional: 200 analyses/month, unlimited saves, PDF download, trend charts
-  - Business: unlimited analyses, team access, all features
-  ```
-- [ ] **Commit:**
-  ```bash
-  git add . && git commit -m "feat(billing): integrate Stripe subscriptions with tier-based feature gating"
-  ```
-
-
-
 ### Step 102 — Merge v2.0 and Tag
 
-- [ ] Merge all v2.0 feature branches into `develop`
-- [ ] Run the full regression test suite; fix any failures
-- [ ] Merge `develop` into `main` and tag:
+- [x] Merge all v2.0 feature branches into `develop`
+- [x] Run the full regression test suite; fix any failures
+- [x] Merge `develop` into `main` and tag:
   ```bash
   git checkout main
   git merge develop --no-ff -m "release: v2.0.0"
-  git tag -a v2.0.0 -m "v2.0.0: paid product with auth, saved properties, PDF reports, map, and Stripe billing"
+  git tag -a v2.0.0 -m "v2.0.0: full product with auth, saved properties, PDF reports, trends, and interactive map"
   git push origin main && git push origin v2.0.0
   ```
 
-> ✅ **v2.0 Complete.** Full paid SaaS product with subscriptions, user
-> accounts, saved properties, server-generated PDF reports, historical trend
-> charts, and an interactive flood-zone map.
-
----
-
----
-
-
-
-## v3.0 — Enterprise Product
-
-> **Scope Lock:** This version adds portfolio-level analysis, custom risk model
-> configuration, a public API with key-based authentication and rate limiting,
-> insurance cost estimates, and enterprise white-label reporting.
-
----
-
-
-
-### Step 103 — Portfolio Analysis Engine
-
-```bash
-git checkout develop && git pull origin develop
-git checkout -b feature/portfolio-analysis
-```
-
-- [ ] Build a CSV bulk upload endpoint: accept up to 1,000 addresses per file
-- [ ] Process the portfolio as a background job (Celery + Redis, or FastAPI
-  ```
-  `BackgroundTasks` for smaller workloads)
-  ```
-- [ ] Frontend: Portfolio dashboard showing a heatmap of all addresses by risk
-  ```
-  level, a "Top 10 Worst Exposures" table, and a concentration risk breakdown
-  by hazard type
-  ```
-- [ ] **Commit:**
-  ```bash
-  git add . && git commit -m "feat(portfolio): add bulk CSV upload and portfolio analysis with heatmap dashboard"
-  ```
-
-
-
-### Step 104 — Custom Risk Model Weights
-
-```bash
-git checkout develop && git pull origin develop
-git checkout -b feature/custom-risk-models
-```
-
-- [ ] Allow enterprise users to configure hazard weighting (e.g., increase
-  ```
-  hurricane weight for a coastal-heavy portfolio, increase wildfire for
-  California-focused portfolios)
-  ```
-- [ ] Store custom model configurations per organization in the database
-- [ ] Re-run reports using the custom weights when a saved configuration is active
-- [ ] **Commit:**
-  ```bash
-  git add . && git commit -m "feat(enterprise): add custom risk model weight configuration per organization"
-  ```
-
-
-
-### Step 105 — Public REST API with API Key Authentication
-
-```bash
-git checkout develop && git pull origin develop
-git checkout -b feature/public-api
-```
-
-- [ ] Build API key generation and revocation for users/organizations (stored
-  ```
-  hashed in the database)
-  ```
-- [ ] Add API key middleware that reads `X-API-Key` header on all `/api/v1/`
-  ```
-  routes
-  ```
-- [ ] Implement rate limiting per API key:
-  ```
-  - Free tier: 100 requests/day
-  - Paid tiers: per-plan limits defined in subscription config
-  ```
-- [ ] Auto-generate OpenAPI/Swagger documentation via FastAPI's built-in support
-- [ ] Create an API Keys management page in the user dashboard
-- [ ] **Commit:**
-  ```bash
-  git add . && git commit -m "feat(api): add public REST API with API key auth, rate limiting, and Swagger docs"
-  ```
-
-
-
-### Step 106 — Insurance Cost Estimates
-
-```bash
-git checkout develop && git pull origin develop
-git checkout -b feature/insurance-estimates
-```
-
-- [ ] Research NFIP flood insurance rate tables and private market trend data
-  ```
-  by FEMA flood zone and state
-  ```
-- [ ] Build a service that maps hazard scores and flood zones to estimated
-  ```
-  annual premium ranges
-  ```
-- [ ] Add `insurance_estimate` field to the `ClimateRiskReport` schema
-- [ ] Display the estimate section in the dashboard and PDF report with a
-  ```
-  clear disclaimer ("Estimated range only — contact a licensed insurer for
-  a precise quote")
-  ```
-- [ ] **Commit:**
-  ```bash
-  git add . && git commit -m "feat(insurance): add insurance cost estimate ranges to risk reports"
-  ```
-
-
-
-### Step 107 — Enterprise White-Label Reporting
-
-```bash
-git checkout develop && git pull origin develop
-git checkout -b feature/enterprise-reporting
-```
-
-- [ ] Build a "Board-Ready Executive Summary" PDF mode: high-level language,
-  ```
-  no technical scoring detail, suitable for board or investor presentation
-  ```
-- [ ] Allow enterprise organizations to upload a logo and set brand colors;
-  ```
-  apply them to all generated PDF reports
-  ```
-- [ ] Add a portfolio-level CSV export containing all property addresses, scores,
-  ```
-  verdicts, and insurance estimates for import into Excel or BI tools
-  ```
-- [ ] **Commit:**
-  ```bash
-  git add . && git commit -m "feat(enterprise): add white-label PDF reporting, brand config, and portfolio CSV export"
-  ```
-
-
-
-### Step 108 — Merge v3.0 and Tag
-
-- [ ] Merge all v3.0 feature branches into `develop`
-- [ ] Run the full regression suite; conduct a load test on the public API
-  ```
-  endpoint targeting ≥ 200 concurrent requests
-  ```
-- [ ] Merge `develop` into `main` and tag:
-  ```bash
-  git checkout main
-  git merge develop --no-ff -m "release: v3.0.0"
-  git tag -a v3.0.0 -m "v3.0.0: enterprise product with portfolio analysis, public API, custom models, and insurance estimates"
-  git push origin main && git push origin v3.0.0
-  ```
-
-> ✅ **v3.0 Complete.** Enterprise-grade climate risk intelligence platform
-> capable of portfolio-scale analysis, a developer-facing public API, custom
-> risk model configuration, insurance estimation, and white-label reporting.
+> ✅ **v2.0 Complete.** Auth, saved properties, server-side PDFs,
+> historical trends, and interactive map.
 
 ---
 
@@ -1949,8 +1635,7 @@ git checkout -b feature/enterprise-reporting
 | v0.1-alpha | ✅ Complete    | Monorepo scaffolding, Docker, CI pipeline              |
 | v0.2-alpha | ✅ Complete    | Geocoding, climate data APIs, risk scoring engine      |
 | v0.3-alpha | ✅ Complete    | Full frontend: search, dashboard, score cards, verdict |
-| v1.0.0     | 🔄 In Progress | AI summaries, printable reports, production deploy     |
-| v2.0.0     | ⬜ Not Started | Auth, saved properties, PDF, maps, Stripe billing      |
-| v3.0.0     | ⬜ Not Started | Portfolio, public API, custom models, insurance        |
+| v1.0.0     | ✅ Complete | AI summaries, printable reports, E2E tests |
+| v2.0.0     | ✅ Complete | Auth, saved properties, PDF, trends, interactive map |
 
 

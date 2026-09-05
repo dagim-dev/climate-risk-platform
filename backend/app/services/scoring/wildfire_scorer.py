@@ -58,13 +58,15 @@ def score_wildfire_risk(
     wui_bonus = WUI_BONUSES.get(wildfire_data.wui_classification, 0.0)
     if wui_bonus > 0:
         score += wui_bonus
-        factors.append(f"WUI classification: {wildfire_data.wui_classification}")
+        factors.append(
+            f"Inferred WUI class ({wildfire_data.wui_classification}) from nearby fire density, not an official WUI map"
+        )
 
     zone_multiplier = DROUGHT_ZONE_MULTIPLIERS.get(wildfire_data.fire_weather_zone, 1.0)
     if zone_multiplier > 1.0:
         score *= zone_multiplier
         factors.append(
-            f"Drought-prone fire weather zone ({wildfire_data.fire_weather_zone})"
+            f"Inferred fire-weather region ({wildfire_data.fire_weather_zone}) from lat/lng"
         )
 
     nearest_fire_km = _estimated_nearest_fire_km(wildfire_data)

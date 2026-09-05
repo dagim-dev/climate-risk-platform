@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+from app.core.google_oauth import verify_google_id_token
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.user import User
 from app.schemas.auth import (
@@ -55,21 +56,26 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/oauth", response_model=AuthResponse)
 async def oauth_sync(request: OAuthSyncRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.google_id == request.google_id))
+    try:
+        identity = verify_google_id_token(request.id_token)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+
+    result = await db.execute(select(User).where(User.google_id == identity.google_id))
     user = result.scalar_one_or_none()
 
     if user is None:
-        email_result = await db.execute(select(User).where(User.email == request.email))
+        email_result = await db.execute(select(User).where(User.email == identity.email))
         user = email_result.scalar_one_or_none()
         if user is not None:
-            user.google_id = request.google_id
-            if request.name and not user.name:
-                user.name = request.name
+            user.google_id = identity.google_id
+            if identity.name and not user.name:
+                user.name = identity.name
         else:
             user = User(
-                email=request.email,
-                name=request.name,
-                google_id=request.google_id,
+                email=identity.email,
+                name=identity.name,
+                google_id=identity.google_id,
             )
             db.add(user)
 

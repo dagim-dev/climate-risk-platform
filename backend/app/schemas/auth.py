@@ -17,9 +17,7 @@ class LoginRequest(BaseModel):
 
 
 class OAuthSyncRequest(BaseModel):
-    email: EmailStr
-    name: Optional[str] = None
-    google_id: str = Field(..., min_length=1, max_length=255)
+    id_token: str = Field(..., min_length=1)
 
 
 class TokenResponse(BaseModel):
@@ -31,7 +29,6 @@ class UserResponse(BaseModel):
     id: int
     email: str
     name: Optional[str]
-    subscription_tier: str = "free"
 
     class Config:
         from_attributes = True

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
+# Scaffolding only — production cloud deploy is deferred.
 # Step 87 — Deploy the FastAPI backend to Google Cloud Run.
+# --allow-unauthenticated is intentional: /health, /geocode, and /analyze are public.
+# PDFs are stored on local disk; move to object storage before a real Cloud Run deploy.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -29,7 +32,7 @@ echo ""
 echo "==> Creating secrets in Google Secret Manager (Step 88)"
 echo "    Run each command once and paste the real value when prompted:"
 echo ""
-for SECRET in DATABASE_URL GOOGLE_MAPS_API_KEY OPENAI_API_KEY NOAA_API_KEY; do
+for SECRET in DATABASE_URL GOOGLE_MAPS_API_KEY OPENAI_API_KEY NOAA_API_KEY JWT_SECRET GOOGLE_CLIENT_ID SENTRY_DSN; do
   echo "  gcloud secrets create ${SECRET} --replication-policy=automatic 2>/dev/null || true"
   echo "  echo -n 'YOUR_VALUE' | gcloud secrets versions add ${SECRET} --data-file=-"
 done
@@ -48,8 +51,8 @@ gcloud run deploy "${SERVICE_NAME}" \
   --platform managed \
   --allow-unauthenticated \
   --port 8080 \
-  --set-env-vars "ENVIRONMENT=production,APP_VERSION=1.0.0,CORS_ORIGINS=https://climaterisk.io,https://www.climaterisk.io" \
-  --set-secrets "DATABASE_URL=DATABASE_URL:latest,GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,NOAA_API_KEY=NOAA_API_KEY:latest"
+  --set-env-vars "ENVIRONMENT=production,APP_VERSION=2.0.0,CORS_ORIGINS=https://climaterisk.io,https://www.climaterisk.io" \
+  --set-secrets "DATABASE_URL=DATABASE_URL:latest,GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,NOAA_API_KEY=NOAA_API_KEY:latest,JWT_SECRET=JWT_SECRET:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,SENTRY_DSN=SENTRY_DSN:latest"
 
 SERVICE_URL="$(gcloud run services describe "${SERVICE_NAME}" --region "${GCP_REGION}" --format='value(status.url)')"
 echo ""
