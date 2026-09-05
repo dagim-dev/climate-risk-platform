@@ -53,6 +53,34 @@ test.describe("Address search and risk dashboard", () => {
     await expect(alert).toBeVisible();
   });
 
+  test("non-US address shows warning and does not render results", async ({ page }) => {
+    await page.route("**/api/v1/analyze", async (route) => {
+      if (route.request().method() !== "POST") {
+        await route.continue();
+        return;
+      }
+
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Please enter a valid US address." }),
+      });
+    });
+    await page.goto("/");
+
+    const searchInput = page.getByPlaceholder(
+      "Enter a property address (e.g., 123 Main St, Miami, FL)",
+    );
+    await searchInput.fill("Toronto, ON, Canada");
+    await page.getByRole("button", { name: "Analyze Risk" }).click();
+
+    const alert = page.getByRole("alert").filter({
+      hasText: "Please enter a valid US address.",
+    });
+    await expect(alert).toBeVisible();
+    await expect(page.getByRole("region", { name: "Risk assessment results" })).toBeHidden();
+  });
+
   test("verdict badge shows Go, Caution, or Avoid", async ({ page }) => {
     await mockAnalyzeApi(page);
     await page.goto("/");

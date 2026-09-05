@@ -294,3 +294,30 @@ def test_analyze_endpoint_returns_report():
     assert payload["address"] == "Denver, CO"
     assert "overall_risk_score" in payload
     assert payload["verdict"] in {"Go", "Caution", "Avoid"}
+
+
+def test_analyze_endpoint_rejects_non_us_address():
+    build_risk_report_mock = AsyncMock()
+
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch(
+                "app.api.v1.endpoints.risk.geocode_address",
+                new=AsyncMock(
+                    side_effect=ValueError("Please enter a valid US address."),
+                ),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "app.api.v1.endpoints.risk.build_risk_report",
+                new=build_risk_report_mock,
+            )
+        )
+        response = client.post("/api/v1/analyze", json={"address": "Toronto, ON, Canada"})
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Please enter a valid US address."
+    build_risk_report_mock.assert_not_called()
