@@ -132,8 +132,11 @@ export default function PropertiesPage() {
               <div>
                 <p className="font-semibold text-brand-primary">{property.address}</p>
                 <p className="mt-1 text-sm text-zinc-500">
-                  Last updated {formatDate(property.updated_at)} · Score {property.overall_risk_score} ·{" "}
-                  {property.verdict}
+                  Last updated {formatDate(property.updated_at)} ·{" "}
+                  {property.overall_risk_score != null
+                    ? `Score ${property.overall_risk_score}`
+                    : "Score unavailable"}{" "}
+                  · {property.verdict ?? "Verdict unavailable"}
                 </p>
               </div>
 

@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime
 from typing import List
 
 import httpx
 from pydantic import BaseModel
+
+from app.services.climate.source_cache import SOURCE_WFIGS, fetch_with_cache
+from app.services.climate.source_result import SourceResult
+from app.services.climate.utils import ARCGIS_HEADERS, ARCGIS_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -16,15 +21,13 @@ FIRE_PERIMETER_URL = (
 
 SEARCH_RADIUS_M = 50_000
 LOOKBACK_YEARS = 20
+WILDFIRE_FETCH_DEADLINE_SECONDS = 6.0
 
 
 class WildfireData(BaseModel):
     fire_count_20_years: int = 0
     fire_weather_zone: str = "Unknown"
     wui_classification: str = "Non-WUI"
-
-
-DEFAULT_WILDFIRE_DATA = WildfireData()
 
 
 def _classify_wui(fire_count: int, radius_km: float = 50.0) -> str:
@@ -53,52 +56,47 @@ def _estimate_fire_weather_zone(latitude: float, longitude: float) -> str:
     return "Central"
 
 
-async def get_wildfire_data(latitude: float, longitude: float) -> WildfireData:
+async def _fetch_wildfire_live(latitude: float, longitude: float) -> WildfireData:
     cutoff_year = datetime.utcnow().year - LOOKBACK_YEARS
     where = f"FIRE_YEAR_INT >= {cutoff_year} AND FEATURE_CA LIKE '%Final%'"
+    deadline = time.monotonic() + WILDFIRE_FETCH_DEADLINE_SECONDS
 
-    try:
-        async with httpx.AsyncClient() as client:
-            all_features: List[dict] = []
-            offset = 0
+    async with httpx.AsyncClient(timeout=ARCGIS_TIMEOUT) as client:
+        all_features: List[dict] = []
+        offset = 0
 
-            while True:
-                params = {
-                    "where": where,
-                    "geometry": f"{longitude},{latitude}",
-                    "geometryType": "esriGeometryPoint",
-                    "inSR": 4326,
-                    "spatialRel": "esriSpatialRelIntersects",
-                    "distance": SEARCH_RADIUS_M,
-                    "units": "esriSRUnit_Meter",
-                    "outFields": "INCIDENT,FIRE_YEAR_INT,GIS_ACRES,FEATURE_CA",
-                    "returnGeometry": "false",
-                    "f": "json",
-                    "resultRecordCount": 2000,
-                    "resultOffset": offset,
-                }
-                response = await client.get(
-                    FIRE_PERIMETER_URL,
-                    params=params,
-                    headers={"User-Agent": "climate-risk-platform/0.2-alpha"},
-                    timeout=60.0,
-                )
-                response.raise_for_status()
-                data = response.json()
-                features = data.get("features", [])
-                all_features.extend(features)
+        while True:
+            if time.monotonic() >= deadline:
+                raise TimeoutError("Wildfire perimeter fetch exceeded deadline")
 
-                if not data.get("exceededTransferLimit") or not features:
-                    break
-                offset += len(features)
-    except (httpx.HTTPError, httpx.TimeoutException) as exc:
-        logger.warning(
-            "Wildfire perimeter query failed for (%s, %s): %s",
-            latitude,
-            longitude,
-            exc,
-        )
-        return DEFAULT_WILDFIRE_DATA
+            params = {
+                "where": where,
+                "geometry": f"{longitude},{latitude}",
+                "geometryType": "esriGeometryPoint",
+                "inSR": 4326,
+                "spatialRel": "esriSpatialRelIntersects",
+                "distance": SEARCH_RADIUS_M,
+                "units": "esriSRUnit_Meter",
+                "outFields": "INCIDENT,FIRE_YEAR_INT,GIS_ACRES,FEATURE_CA",
+                "returnGeometry": "false",
+                "f": "json",
+                "resultRecordCount": 2000,
+                "resultOffset": offset,
+            }
+            response = await client.get(
+                FIRE_PERIMETER_URL,
+                params=params,
+                headers=ARCGIS_HEADERS,
+                timeout=ARCGIS_TIMEOUT,
+            )
+            response.raise_for_status()
+            data = response.json()
+            features = data.get("features", [])
+            all_features.extend(features)
+
+            if not data.get("exceededTransferLimit") or not features:
+                break
+            offset += len(features)
 
     if not all_features:
         return WildfireData(
@@ -120,4 +118,14 @@ async def get_wildfire_data(latitude: float, longitude: float) -> WildfireData:
         fire_count_20_years=fire_count,
         fire_weather_zone=_estimate_fire_weather_zone(latitude, longitude),
         wui_classification=_classify_wui(fire_count),
+    )
+
+
+async def get_wildfire_data(latitude: float, longitude: float) -> SourceResult[WildfireData]:
+    return await fetch_with_cache(
+        SOURCE_WFIGS,
+        latitude,
+        longitude,
+        lambda: _fetch_wildfire_live(latitude, longitude),
+        WildfireData,
     )

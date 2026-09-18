@@ -1,13 +1,25 @@
-from typing import List, Optional
+from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
+HazardStatus = Literal["ok", "stale", "unavailable"]
+OverallStatus = Literal["complete", "partial", "unavailable"]
+
 
 class HazardScore(BaseModel):
-    score: int = Field(..., ge=0, le=100)
-    severity: str
-    confidence: str
-    primary_factors: List[str]
+    status: HazardStatus = "ok"
+    score: Optional[int] = Field(default=None, ge=0, le=100)
+    severity: Optional[str] = None
+    confidence: str = "Medium"
+    primary_factors: List[str] = Field(default_factory=list)
+    as_of: Optional[str] = None
+    unavailable_reason: Optional[str] = None
+
+
+class SourceStatus(BaseModel):
+    status: HazardStatus
+    as_of: Optional[str] = None
+    error: Optional[str] = None
 
 
 class TrendPoint(BaseModel):
@@ -27,8 +39,10 @@ class ClimateRiskReport(BaseModel):
     hurricane_risk: HazardScore
     heat_risk: HazardScore
     wildfire_risk: HazardScore
-    overall_risk_score: int = Field(..., ge=0, le=100)
-    verdict: str
+    overall_risk_score: Optional[int] = Field(default=None, ge=0, le=100)
+    overall_status: OverallStatus = "complete"
+    verdict: Optional[str] = None
+    sources: Dict[str, SourceStatus] = Field(default_factory=dict)
     ai_summary: Optional[str] = None
     generated_at: str
     historical_trend: List[TrendPoint] = Field(default_factory=list)

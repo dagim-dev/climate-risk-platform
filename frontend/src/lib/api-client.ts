@@ -7,8 +7,8 @@ export interface SavedPropertyListItem {
   address: string;
   latitude: number;
   longitude: number;
-  overall_risk_score: number;
-  verdict: string;
+  overall_risk_score: number | null;
+  verdict: string | null;
   pdf_url: string | null;
   updated_at: string;
 }

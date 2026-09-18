@@ -6,6 +6,8 @@ from typing import Any, Dict, Optional
 import httpx
 
 ARCGIS_HEADERS = {"User-Agent": "climate-risk-platform/0.2-alpha"}
+ARCGIS_TIMEOUT = httpx.Timeout(4.0, connect=2.0)
+NOAA_REQUEST_TIMEOUT = httpx.Timeout(4.0, connect=2.0)
 
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -32,6 +34,7 @@ async def query_arcgis_point(
     distance: Optional[int] = None,
     units: str = "esriSRUnit_Meter",
     result_record_count: int = 2000,
+    timeout: httpx.Timeout = ARCGIS_TIMEOUT,
 ) -> Dict[str, Any]:
     params: Dict[str, Any] = {
         "where": where,
@@ -52,7 +55,7 @@ async def query_arcgis_point(
         url,
         params=params,
         headers=ARCGIS_HEADERS,
-        timeout=30.0,
+        timeout=timeout,
     )
     response.raise_for_status()
     return response.json()

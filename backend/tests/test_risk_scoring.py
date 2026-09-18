@@ -1,22 +1,27 @@
 from contextlib import ExitStack
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.schemas.address import Coordinates
 from app.schemas.risk import HazardScore
-from app.services.climate.flood_data import FloodZoneData
-from app.services.climate.heat_data import HeatRiskData
-from app.services.climate.hurricane_data import HurricaneData
-from app.services.climate.wildfire_data import WildfireData
-from app.services.scoring.aggregator import (
-    build_risk_report,
-    compute_overall_score,
-    score_to_verdict,
-)
+from app.services.climate.flood_data import FloodZoneData, get_flood_zone_data
+from app.services.climate.heat_data import HeatRiskData, get_heat_risk_data
+from app.services.climate.hurricane_data import HurricaneData, get_hurricane_data
+from app.services.climate.source_result import SourceResult
+from app.services.climate.wildfire_data import WildfireData, get_wildfire_data
+from app.services.scoring.aggregator import build_risk_report
 from app.services.scoring.flood_scorer import score_flood_risk
+from app.services.scoring.hazard_utils import (
+    compute_overall_score,
+    score_hazard_from_source,
+    score_to_verdict,
+    unavailable_hazard,
+)
 from app.services.scoring.heat_scorer import score_heat_risk
 from app.services.scoring.hurricane_scorer import score_hurricane_risk
 from app.services.scoring.wildfire_scorer import score_wildfire_risk
@@ -37,6 +42,14 @@ def _hazard(score: int) -> HazardScore:
         confidence="High",
         primary_factors=["test factor"],
     )
+
+
+def _ok_result(data):
+    return SourceResult(status="ok", data=data, as_of=datetime.now(timezone.utc).isoformat())
+
+
+def _unavailable_result(error: str = "upstream failed"):
+    return SourceResult(status="unavailable", data=None, as_of=None, error=error)
 
 
 def test_miami_beach_flood_and_hurricane_scores():
@@ -163,9 +176,28 @@ def test_verdict_thresholds(overall_score, expected_verdict):
     assert score_to_verdict(overall_score) == expected_verdict
 
 
+def test_score_to_verdict_none_when_overall_unavailable():
+    assert score_to_verdict(None) is None
+
+
 def test_compute_overall_score_weighted_average():
-    overall = compute_overall_score(_hazard(80), _hazard(60), _hazard(40), _hazard(20))
+    overall, status = compute_overall_score(_hazard(80), _hazard(60), _hazard(40), _hazard(20))
     assert overall == 54
+    assert status == "complete"
+
+
+def test_compute_overall_score_partial_when_one_hazard_unavailable():
+    missing = unavailable_hazard("FEMA unavailable")
+    overall, status = compute_overall_score(_hazard(80), _hazard(60), _hazard(40), missing)
+    assert overall == 62
+    assert status == "partial"
+
+
+def test_compute_overall_score_unavailable_when_all_missing():
+    missing = unavailable_hazard("failed")
+    overall, status = compute_overall_score(missing, missing, missing, missing)
+    assert overall is None
+    assert status == "unavailable"
 
 
 @pytest.mark.asyncio
@@ -182,10 +214,12 @@ async def test_build_risk_report_integration():
             patch(
                 "app.services.scoring.aggregator.get_flood_zone_data",
                 new=AsyncMock(
-                    return_value=FloodZoneData(
-                        flood_zone="AE",
-                        base_flood_elevation=12.0,
-                        special_flood_hazard_area=True,
+                    return_value=_ok_result(
+                        FloodZoneData(
+                            flood_zone="AE",
+                            base_flood_elevation=12.0,
+                            special_flood_hazard_area=True,
+                        )
                     )
                 ),
             )
@@ -194,16 +228,18 @@ async def test_build_risk_report_integration():
             patch(
                 "app.services.scoring.aggregator.get_hurricane_data",
                 new=AsyncMock(
-                    return_value=HurricaneData(
-                        historical_storm_count=45,
-                        nearest_track_distance_km=12.0,
-                        category_distribution={
-                            "category_1": 10,
-                            "category_2": 8,
-                            "category_3": 12,
-                            "category_4": 8,
-                            "category_5": 3,
-                        },
+                    return_value=_ok_result(
+                        HurricaneData(
+                            historical_storm_count=45,
+                            nearest_track_distance_km=12.0,
+                            category_distribution={
+                                "category_1": 10,
+                                "category_2": 8,
+                                "category_3": 12,
+                                "category_4": 8,
+                                "category_5": 3,
+                            },
+                        )
                     )
                 ),
             )
@@ -212,10 +248,12 @@ async def test_build_risk_report_integration():
             patch(
                 "app.services.scoring.aggregator.get_heat_risk_data",
                 new=AsyncMock(
-                    return_value=HeatRiskData(
-                        extreme_heat_days_per_year=55.0,
-                        trend_direction="increasing",
-                        projected_2050_delta_c=2.5,
+                    return_value=_ok_result(
+                        HeatRiskData(
+                            extreme_heat_days_per_year=55.0,
+                            trend_direction="increasing",
+                            projected_2050_delta_c=2.5,
+                        )
                     )
                 ),
             )
@@ -224,10 +262,12 @@ async def test_build_risk_report_integration():
             patch(
                 "app.services.scoring.aggregator.get_wildfire_data",
                 new=AsyncMock(
-                    return_value=WildfireData(
-                        fire_count_20_years=5,
-                        fire_weather_zone="Southern Plains",
-                        wui_classification="Interface",
+                    return_value=_ok_result(
+                        WildfireData(
+                            fire_count_20_years=5,
+                            fire_weather_zone="Southern Plains",
+                            wui_classification="Interface",
+                        )
                     )
                 ),
             )
@@ -235,9 +275,53 @@ async def test_build_risk_report_integration():
         report = await build_risk_report(coordinates)
 
     assert report.address == "Miami Beach, FL"
+    assert report.overall_risk_score is not None
     assert 0 <= report.overall_risk_score <= 100
     assert report.verdict in {"Go", "Caution", "Avoid"}
+    assert report.overall_status == "complete"
     assert report.generated_at
+
+
+@pytest.mark.asyncio
+async def test_build_risk_report_marks_partial_when_flood_unavailable():
+    coordinates = Coordinates(
+        latitude=MIAMI_LAT,
+        longitude=MIAMI_LON,
+        formatted_address="Miami Beach, FL",
+        place_id="test-place-id",
+    )
+
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch(
+                "app.services.scoring.aggregator.get_flood_zone_data",
+                new=AsyncMock(return_value=_unavailable_result("FEMA timeout")),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "app.services.scoring.aggregator.get_hurricane_data",
+                new=AsyncMock(return_value=_ok_result(HurricaneData())),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "app.services.scoring.aggregator.get_heat_risk_data",
+                new=AsyncMock(return_value=_ok_result(HeatRiskData())),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "app.services.scoring.aggregator.get_wildfire_data",
+                new=AsyncMock(return_value=_ok_result(WildfireData())),
+            )
+        )
+        report = await build_risk_report(coordinates)
+
+    assert report.flood_risk.status == "unavailable"
+    assert report.flood_risk.score is None
+    assert report.overall_status == "partial"
+    assert report.overall_risk_score is not None
 
 
 def test_analyze_endpoint_returns_report():
@@ -259,10 +343,12 @@ def test_analyze_endpoint_returns_report():
             patch(
                 "app.services.scoring.aggregator.get_flood_zone_data",
                 new=AsyncMock(
-                    return_value=FloodZoneData(
-                        flood_zone="X",
-                        base_flood_elevation=None,
-                        special_flood_hazard_area=False,
+                    return_value=_ok_result(
+                        FloodZoneData(
+                            flood_zone="X",
+                            base_flood_elevation=None,
+                            special_flood_hazard_area=False,
+                        )
                     )
                 ),
             )
@@ -270,19 +356,19 @@ def test_analyze_endpoint_returns_report():
         stack.enter_context(
             patch(
                 "app.services.scoring.aggregator.get_hurricane_data",
-                new=AsyncMock(return_value=HurricaneData()),
+                new=AsyncMock(return_value=_ok_result(HurricaneData())),
             )
         )
         stack.enter_context(
             patch(
                 "app.services.scoring.aggregator.get_heat_risk_data",
-                new=AsyncMock(return_value=HeatRiskData()),
+                new=AsyncMock(return_value=_ok_result(HeatRiskData())),
             )
         )
         stack.enter_context(
             patch(
                 "app.services.scoring.aggregator.get_wildfire_data",
-                new=AsyncMock(return_value=WildfireData()),
+                new=AsyncMock(return_value=_ok_result(WildfireData())),
             )
         )
         response = client.post("/api/v1/analyze", json={"address": "Denver, CO"})
@@ -321,3 +407,167 @@ def test_analyze_endpoint_rejects_non_us_address():
     assert response.status_code == 400
     assert response.json()["detail"] == "Please enter a valid US address."
     build_risk_report_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_fema_failure_without_cache_is_unavailable_not_low_risk():
+    with patch(
+        "app.services.climate.flood_data._fetch_flood_zone_live",
+        new=AsyncMock(side_effect=httpx.TimeoutException("timeout")),
+    ):
+        with patch(
+            "app.services.climate.source_cache.get_cached_payload",
+            new=AsyncMock(return_value=None),
+        ):
+            result = await get_flood_zone_data(MIAMI_LAT, MIAMI_LON)
+
+    assert result.status == "unavailable"
+    assert result.data is None
+
+
+@pytest.mark.asyncio
+async def test_fema_failure_serves_stale_cache():
+    flood = FloodZoneData(
+        flood_zone="AE",
+        base_flood_elevation=10.0,
+        special_flood_hazard_area=True,
+    )
+    fetched_at = datetime.now(timezone.utc)
+
+    with patch(
+        "app.services.climate.flood_data._fetch_flood_zone_live",
+        new=AsyncMock(side_effect=httpx.HTTPError("503")),
+    ):
+        with patch(
+            "app.services.climate.source_cache.get_cached_payload",
+            new=AsyncMock(return_value=(flood.model_dump(mode="json"), fetched_at)),
+        ):
+            result = await get_flood_zone_data(MIAMI_LAT, MIAMI_LON)
+
+    assert result.status == "stale"
+    assert result.data is not None
+    assert result.data.flood_zone == "AE"
+
+
+@pytest.mark.asyncio
+async def test_noaa_heat_missing_api_key_is_unavailable_not_placeholder(monkeypatch):
+    monkeypatch.setattr("app.core.config.settings.NOAA_API_KEY", "")
+
+    with patch(
+        "app.services.climate.source_cache.get_cached_payload",
+        new=AsyncMock(return_value=None),
+    ):
+        result = await get_heat_risk_data(PHOENIX_LAT, PHOENIX_LON)
+
+    assert result.status == "unavailable"
+    assert result.data is None
+    assert result.error is not None
+    assert "NOAA_API_KEY" in result.error
+
+
+@pytest.mark.asyncio
+async def test_noaa_heat_missing_api_key_serves_stale_cache(monkeypatch):
+    monkeypatch.setattr("app.core.config.settings.NOAA_API_KEY", "")
+    heat = HeatRiskData(
+        extreme_heat_days_per_year=55.0,
+        trend_direction="increasing",
+        projected_2050_delta_c=2.5,
+    )
+    fetched_at = datetime.now(timezone.utc)
+
+    with patch(
+        "app.services.climate.source_cache.get_cached_payload",
+        new=AsyncMock(return_value=(heat.model_dump(mode="json"), fetched_at)),
+    ):
+        result = await get_heat_risk_data(PHOENIX_LAT, PHOENIX_LON)
+
+    assert result.status == "stale"
+    assert result.data is not None
+    assert result.data.extreme_heat_days_per_year == 55.0
+    assert result.error is not None
+
+
+@pytest.mark.asyncio
+async def test_noaa_heat_live_failure_serves_stale_cache(monkeypatch):
+    monkeypatch.setattr("app.core.config.settings.NOAA_API_KEY", "test-noaa-token")
+    heat = HeatRiskData(
+        extreme_heat_days_per_year=40.0,
+        trend_direction="stable",
+        projected_2050_delta_c=1.0,
+    )
+    fetched_at = datetime.now(timezone.utc)
+
+    with patch(
+        "app.services.climate.heat_data._fetch_heat_risk_live",
+        new=AsyncMock(side_effect=httpx.HTTPError("503")),
+    ):
+        with patch(
+            "app.services.climate.source_cache.get_cached_payload",
+            new=AsyncMock(return_value=(heat.model_dump(mode="json"), fetched_at)),
+        ):
+            result = await get_heat_risk_data(PHOENIX_LAT, PHOENIX_LON)
+
+    assert result.status == "stale"
+    assert result.data is not None
+    assert result.data.extreme_heat_days_per_year == 40.0
+
+
+@pytest.mark.asyncio
+async def test_noaa_heat_missing_api_key_does_not_score_as_low_risk(monkeypatch):
+    monkeypatch.setattr("app.core.config.settings.NOAA_API_KEY", "")
+
+    with patch(
+        "app.services.climate.source_cache.get_cached_payload",
+        new=AsyncMock(return_value=None),
+    ):
+        result = await get_heat_risk_data(PHOENIX_LAT, PHOENIX_LON)
+
+    placeholder_score = score_heat_risk(HeatRiskData(), PHOENIX_LAT, PHOENIX_LON).score
+    scored = score_hazard_from_source(result, score_heat_risk, PHOENIX_LAT, PHOENIX_LON)
+
+    assert scored.status == "unavailable"
+    assert scored.score is None
+    assert placeholder_score is not None
+    assert placeholder_score < 20
+
+
+@pytest.mark.asyncio
+async def test_fema_failure_does_not_score_as_zone_x_low_risk():
+    coordinates = Coordinates(
+        latitude=MIAMI_LAT,
+        longitude=MIAMI_LON,
+        formatted_address="Miami Beach, FL",
+        place_id="test-place-id",
+    )
+
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch(
+                "app.services.scoring.aggregator.get_flood_zone_data",
+                new=AsyncMock(return_value=_unavailable_result("FEMA 500")),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "app.services.scoring.aggregator.get_hurricane_data",
+                new=AsyncMock(return_value=_ok_result(HurricaneData())),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "app.services.scoring.aggregator.get_heat_risk_data",
+                new=AsyncMock(return_value=_ok_result(HeatRiskData())),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "app.services.scoring.aggregator.get_wildfire_data",
+                new=AsyncMock(return_value=_ok_result(WildfireData())),
+            )
+        )
+        report = await build_risk_report(coordinates)
+
+    assert report.flood_risk.status == "unavailable"
+    assert report.flood_risk.score is None
+    factors = " ".join(report.flood_risk.primary_factors).lower()
+    assert "zone x" not in factors

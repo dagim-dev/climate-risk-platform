@@ -28,8 +28,8 @@ def _to_list_item(property_: Property) -> PropertyListItem:
         address=property_.address,
         latitude=property_.latitude,
         longitude=property_.longitude,
-        overall_risk_score=report.get("overall_risk_score", 0),
-        verdict=report.get("verdict", "Caution"),
+        overall_risk_score=report.get("overall_risk_score"),
+        verdict=report.get("verdict"),
         pdf_url=property_.pdf_url,
         updated_at=property_.updated_at,
     )

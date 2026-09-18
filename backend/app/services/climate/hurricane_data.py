@@ -7,7 +7,9 @@ from typing import Dict, Optional
 import httpx
 from pydantic import BaseModel, Field
 
-from app.services.climate.utils import haversine_km, query_arcgis_point
+from app.services.climate.source_cache import SOURCE_IBTRACS, fetch_with_cache
+from app.services.climate.source_result import SourceResult
+from app.services.climate.utils import ARCGIS_TIMEOUT, haversine_km, query_arcgis_point
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +35,6 @@ class HurricaneData(BaseModel):
             "category_5": 0,
         }
     )
-
-
-DEFAULT_HURRICANE_DATA = HurricaneData()
 
 
 def _wind_to_category(wind_knots: Optional[float]) -> Optional[int]:
@@ -68,31 +67,30 @@ def _parse_storm_year(attributes: dict) -> Optional[int]:
     return None
 
 
-async def get_hurricane_data(latitude: float, longitude: float) -> HurricaneData:
+async def _fetch_hurricane_live(latitude: float, longitude: float) -> HurricaneData:
     cutoff_year = datetime.utcnow().year - LOOKBACK_YEARS
     where = f"SEASON >= {cutoff_year}"
-
-    try:
-        async with httpx.AsyncClient() as client:
-            data = await query_arcgis_point(
-                client,
-                IBTRACS_QUERY_URL,
-                latitude,
-                longitude,
-                out_fields="SID,NAME,SEASON,USA_WIND,LAT,LON",
-                where=where,
-                distance=SEARCH_RADIUS_M,
-            )
-    except (httpx.HTTPError, httpx.TimeoutException) as exc:
-        logger.warning(
-            "IBTrACS hurricane query failed for (%s, %s): %s",
+    async with httpx.AsyncClient(timeout=ARCGIS_TIMEOUT) as client:
+        data = await query_arcgis_point(
+            client,
+            IBTRACS_QUERY_URL,
             latitude,
             longitude,
-            exc,
+            out_fields="SID,NAME,SEASON,USA_WIND,LAT,LON",
+            where=where,
+            distance=SEARCH_RADIUS_M,
         )
-        return DEFAULT_HURRICANE_DATA
-
     return parse_hurricane_response(data, latitude, longitude, cutoff_year)
+
+
+async def get_hurricane_data(latitude: float, longitude: float) -> SourceResult[HurricaneData]:
+    return await fetch_with_cache(
+        SOURCE_IBTRACS,
+        latitude,
+        longitude,
+        lambda: _fetch_hurricane_live(latitude, longitude),
+        HurricaneData,
+    )
 
 
 def parse_hurricane_response(
@@ -103,7 +101,7 @@ def parse_hurricane_response(
 ) -> HurricaneData:
     features = data.get("features", [])
     if not features:
-        return DEFAULT_HURRICANE_DATA
+        return HurricaneData()
 
     storms_by_id: dict[str, dict] = {}
     category_distribution = {

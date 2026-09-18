@@ -5,10 +5,12 @@ from datetime import datetime
 from typing import List, Optional
 
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from app.core.config import settings
-from app.services.climate.utils import haversine_km
+from app.services.climate.source_cache import SOURCE_NOAA_HEAT, fetch_with_cache
+from app.services.climate.source_result import SourceResult
+from app.services.climate.utils import NOAA_REQUEST_TIMEOUT, haversine_km
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +24,6 @@ class HeatRiskData(BaseModel):
     extreme_heat_days_per_year: float = 0.0
     trend_direction: str = "stable"
     projected_2050_delta_c: float = 0.0
-
-
-DEFAULT_HEAT_DATA = HeatRiskData()
 
 
 def _trend_direction(values: List[float]) -> str:
@@ -77,7 +76,7 @@ async def _find_nearest_station(
             "extent": extent,
             "limit": 25,
         },
-        timeout=30.0,
+        timeout=NOAA_REQUEST_TIMEOUT,
     )
     response.raise_for_status()
     stations = response.json().get("results", [])
@@ -113,7 +112,7 @@ async def _fetch_yearly_extreme_heat_days(
             "units": "standard",
             "limit": 1000,
         },
-        timeout=30.0,
+        timeout=NOAA_REQUEST_TIMEOUT,
     )
     response.raise_for_status()
     results = response.json().get("results", [])
@@ -129,39 +128,39 @@ def count_extreme_heat_days(
     return float(sum(1 for record in results if record.get("value", 0) >= threshold_f))
 
 
-async def get_heat_risk_data(latitude: float, longitude: float) -> HeatRiskData:
+async def _fetch_heat_risk_live(latitude: float, longitude: float) -> HeatRiskData:
     if not settings.NOAA_API_KEY:
-        logger.warning("NOAA_API_KEY is not configured; returning default heat risk data")
-        return DEFAULT_HEAT_DATA
+        raise RuntimeError("NOAA_API_KEY is not configured")
 
     current_year = datetime.utcnow().year
     start_year = current_year - LOOKBACK_YEARS
 
-    try:
-        async with httpx.AsyncClient() as client:
-            station = await _find_nearest_station(client, latitude, longitude)
-            if station is None:
-                return DEFAULT_HEAT_DATA
+    async with httpx.AsyncClient(timeout=NOAA_REQUEST_TIMEOUT) as client:
+        station = await _find_nearest_station(client, latitude, longitude)
+        if station is None:
+            raise RuntimeError("No NOAA weather station found near coordinates")
 
-            yearly_counts: List[float] = []
-            for year in range(start_year, current_year):
-                yearly_counts.append(
-                    await _fetch_yearly_extreme_heat_days(client, station["id"], year)
-                )
-    except (httpx.HTTPError, httpx.TimeoutException, KeyError, ValueError) as exc:
-        logger.warning(
-            "NOAA heat data query failed for (%s, %s): %s",
-            latitude,
-            longitude,
-            exc,
-        )
-        return DEFAULT_HEAT_DATA
+        yearly_counts: List[float] = []
+        for year in range(start_year, current_year):
+            yearly_counts.append(
+                await _fetch_yearly_extreme_heat_days(client, station["id"], year)
+            )
 
     if not yearly_counts:
-        return DEFAULT_HEAT_DATA
+        raise RuntimeError("NOAA returned no heat observations for the nearest station")
 
     return HeatRiskData(
         extreme_heat_days_per_year=round(sum(yearly_counts) / len(yearly_counts), 2),
         trend_direction=_trend_direction(yearly_counts),
         projected_2050_delta_c=_project_2050_delta_c(yearly_counts),
+    )
+
+
+async def get_heat_risk_data(latitude: float, longitude: float) -> SourceResult[HeatRiskData]:
+    return await fetch_with_cache(
+        SOURCE_NOAA_HEAT,
+        latitude,
+        longitude,
+        lambda: _fetch_heat_risk_live(latitude, longitude),
+        HeatRiskData,
     )

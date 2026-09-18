@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.core.database import Base, get_db
 from app.main import app
+from app.models.climate_source_cache import ClimateSourceCache  # noqa: F401
 from app.models.property import Property  # noqa: F401
 from app.models.user import User  # noqa: F401
 

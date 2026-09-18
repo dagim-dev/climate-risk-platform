@@ -29,8 +29,8 @@ class PropertyListItem(BaseModel):
     address: str
     latitude: float
     longitude: float
-    overall_risk_score: int = Field(..., ge=0, le=100)
-    verdict: str
+    overall_risk_score: Optional[int] = Field(default=None, ge=0, le=100)
+    verdict: Optional[str] = None
     pdf_url: Optional[str] = None
     updated_at: datetime
 

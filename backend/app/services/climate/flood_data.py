@@ -6,7 +6,9 @@ from typing import Optional
 import httpx
 from pydantic import BaseModel
 
-from app.services.climate.utils import query_arcgis_point
+from app.services.climate.utils import ARCGIS_TIMEOUT, query_arcgis_point
+from app.services.climate.source_cache import SOURCE_FEMA, fetch_with_cache
+from app.services.climate.source_result import SourceResult
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +25,6 @@ class FloodZoneData(BaseModel):
     special_flood_hazard_area: bool
 
 
-DEFAULT_LOW_RISK = FloodZoneData(
-    flood_zone="X",
-    base_flood_elevation=None,
-    special_flood_hazard_area=False,
-)
-
-
 def _select_highest_risk_zone(features: list) -> Optional[dict]:
     if not features:
         return None
@@ -44,27 +39,36 @@ def _select_highest_risk_zone(features: list) -> Optional[dict]:
     return min(features, key=zone_rank)
 
 
-async def get_flood_zone_data(latitude: float, longitude: float) -> FloodZoneData:
-    try:
-        async with httpx.AsyncClient() as client:
-            data = await query_arcgis_point(
-                client,
-                NFHL_FLOOD_ZONE_URL,
-                latitude,
-                longitude,
-                out_fields="FLD_ZONE,ZONE_SUBTY,SFHA_TF,STATIC_BFE",
-            )
-    except (httpx.HTTPError, httpx.TimeoutException) as exc:
-        logger.warning("FEMA NFHL query failed for (%s, %s): %s", latitude, longitude, exc)
-        return DEFAULT_LOW_RISK
-
+async def _fetch_flood_zone_live(latitude: float, longitude: float) -> FloodZoneData:
+    async with httpx.AsyncClient(timeout=ARCGIS_TIMEOUT) as client:
+        data = await query_arcgis_point(
+            client,
+            NFHL_FLOOD_ZONE_URL,
+            latitude,
+            longitude,
+            out_fields="FLD_ZONE,ZONE_SUBTY,SFHA_TF,STATIC_BFE",
+        )
     return parse_flood_zone_response(data)
+
+
+async def get_flood_zone_data(latitude: float, longitude: float) -> SourceResult[FloodZoneData]:
+    return await fetch_with_cache(
+        SOURCE_FEMA,
+        latitude,
+        longitude,
+        lambda: _fetch_flood_zone_live(latitude, longitude),
+        FloodZoneData,
+    )
 
 
 def parse_flood_zone_response(data: dict) -> FloodZoneData:
     feature = _select_highest_risk_zone(data.get("features", []))
     if feature is None:
-        return DEFAULT_LOW_RISK
+        return FloodZoneData(
+            flood_zone="X",
+            base_flood_elevation=None,
+            special_flood_hazard_area=False,
+        )
 
     attributes = feature.get("attributes", {})
     sfha = attributes.get("SFHA_TF")

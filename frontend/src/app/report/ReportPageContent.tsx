@@ -31,15 +31,26 @@ const HAZARDS = [
 function ReportScoreRow({
   label,
   icon,
-  score,
-  severity,
+  data,
 }: {
   label: string;
   icon: string;
-  score: number;
-  severity: Severity;
+  data: { score: number | null; severity: Severity | null; status?: string; unavailable_reason?: string | null };
 }) {
-  const clampedScore = Math.max(0, Math.min(100, score));
+  if (data.status === "unavailable" || data.score === null) {
+    return (
+      <div className="report-section rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <div className="flex items-center gap-2">
+          <span aria-hidden="true">{icon}</span>
+          <span className="font-semibold text-brand-primary">{label}</span>
+        </div>
+        <p className="mt-2 text-sm font-medium text-amber-950">Data unavailable</p>
+      </div>
+    );
+  }
+
+  const severity = (data.severity ?? "Moderate") as Severity;
+  const clampedScore = Math.max(0, Math.min(100, data.score));
 
   return (
     <div className="report-section rounded-lg border border-zinc-200 p-4">
@@ -119,20 +130,16 @@ export function ReportPageContent() {
         </Link>
       </div>
 
-      <VerdictBadge verdict={report.verdict} overallScore={report.overall_risk_score} />
+      <VerdictBadge
+        verdict={report.verdict}
+        overallScore={report.overall_risk_score}
+        overallStatus={report.overall_status}
+      />
 
       <section className="report-score-grid grid grid-cols-1 gap-4 sm:grid-cols-2">
         {HAZARDS.map(({ label, icon, field }) => {
           const data = report[field];
-          return (
-            <ReportScoreRow
-              key={field}
-              label={label}
-              icon={icon}
-              score={data.score}
-              severity={data.severity}
-            />
-          );
+          return <ReportScoreRow key={field} label={label} icon={icon} data={data} />;
         })}
       </section>
 

@@ -49,18 +49,15 @@ export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) 
         </p>
       </header>
 
-      <VerdictBadge verdict={report.verdict} overallScore={report.overall_risk_score} />
+      <VerdictBadge
+        verdict={report.verdict}
+        overallScore={report.overall_risk_score}
+        overallStatus={report.overall_status}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {hazards.map(({ key, hazard, icon, data }) => (
-          <ScoreCard
-            key={key}
-            hazard={hazard}
-            icon={icon}
-            score={data.score}
-            severity={data.severity}
-            factors={data.primary_factors}
-          />
+          <ScoreCard key={key} hazard={hazard} icon={icon} data={data} />
         ))}
       </div>
 

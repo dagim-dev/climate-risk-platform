@@ -50,10 +50,11 @@ def _flood_growth_rate(latitude: float, longitude: float) -> float:
     return 0.1
 
 
-def _score_at_year(current_score: int, year: int, current_year: int, growth_rate: float) -> int:
+def _score_at_year(current_score: int | None, year: int, current_year: int, growth_rate: float) -> int:
+    base = current_score if current_score is not None else 0
     if year <= current_year:
-        return clamp_score(current_score - growth_rate * (current_year - year))
-    return clamp_score(current_score + growth_rate * (year - current_year))
+        return clamp_score(base - growth_rate * (current_year - year))
+    return clamp_score(base + growth_rate * (year - current_year))
 
 
 def build_historical_trend(
