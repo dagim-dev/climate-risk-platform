@@ -13,7 +13,7 @@ from app.services.scoring.flood_scorer import score_flood_risk
 from app.services.scoring.hazard_utils import (
     compute_overall_score,
     score_hazard_from_source,
-    score_to_verdict,
+    compute_verdict,
     source_status_from_result,
 )
 from app.services.scoring.heat_scorer import score_heat_risk
@@ -61,6 +61,12 @@ async def build_risk_report(coordinates: Coordinates) -> ClimateRiskReport:
         longitude,
     )
 
+    verdict, verdict_reason = compute_verdict(
+        overall_risk_score,
+        overall_status,
+        (flood_risk, hurricane_risk, heat_risk, wildfire_risk),
+    )
+
     return ClimateRiskReport(
         address=coordinates.formatted_address,
         latitude=latitude,
@@ -71,7 +77,8 @@ async def build_risk_report(coordinates: Coordinates) -> ClimateRiskReport:
         wildfire_risk=wildfire_risk,
         overall_risk_score=overall_risk_score,
         overall_status=overall_status,
-        verdict=score_to_verdict(overall_risk_score) if overall_status == "complete" else None,
+        verdict=verdict,
+        verdict_reason=verdict_reason,
         sources={
             "fema_nfhl": source_status_from_result(flood_result),
             "ibtracs": source_status_from_result(hurricane_result),

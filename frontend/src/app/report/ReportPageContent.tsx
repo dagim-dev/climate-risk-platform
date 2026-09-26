@@ -135,6 +135,7 @@ export function ReportPageContent() {
         overallScore={report.overall_risk_score}
         overallStatus={report.overall_status}
         unavailableHazards={unavailableHazardNames(report)}
+        verdictReason={report.verdict_reason}
       />
 
       <section className="report-score-grid grid grid-cols-1 gap-4 sm:grid-cols-2">

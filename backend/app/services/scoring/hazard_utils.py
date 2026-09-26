@@ -68,6 +68,38 @@ def compute_overall_score(
     return clamp_score(weighted), overall_status
 
 
+# A single hazard at or above this score is enough to rule out "Go", however low the
+# weighted average is (e.g. a wildfire town with no flood or hurricane exposure).
+SINGLE_HAZARD_CAUTION_THRESHOLD = 70
+HAZARD_NAMES = ("Flood", "Hurricane", "Heat", "Wildfire")
+
+
+def compute_verdict(
+    overall_score: Optional[int],
+    overall_status: OverallStatus,
+    hazards: Tuple[HazardScore, HazardScore, HazardScore, HazardScore],
+) -> Tuple[Optional[str], Optional[str]]:
+    """Return (verdict, reason). No verdict unless every hazard was assessed."""
+    if overall_status != "complete":
+        return None, None
+
+    verdict = score_to_verdict(overall_score)
+    if verdict != "Go":
+        return verdict, None
+
+    severe = [
+        f"{name} ({hazard.score}/100)"
+        for name, hazard in zip(HAZARD_NAMES, hazards)
+        if hazard.score is not None and hazard.score >= SINGLE_HAZARD_CAUTION_THRESHOLD
+    ]
+    if not severe:
+        return verdict, None
+    return "Caution", (
+        f"Raised to Caution: {' and '.join(severe)} {'is' if len(severe) == 1 else 'are'} high "
+        "even though the combined score is low."
+    )
+
+
 def score_to_verdict(overall_score: Optional[int]) -> Optional[str]:
     if overall_score is None:
         return None

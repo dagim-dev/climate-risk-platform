@@ -6,6 +6,7 @@ interface VerdictBadgeProps {
   overallScore: number | null;
   overallStatus?: OverallStatus;
   unavailableHazards?: string[];
+  verdictReason?: string | null;
 }
 
 export function unavailableHazardNames(report: ClimateRiskReport): string[] {
@@ -30,6 +31,7 @@ export function VerdictBadge({
   overallScore,
   overallStatus,
   unavailableHazards = [],
+  verdictReason = null,
 }: VerdictBadgeProps) {
   if (overallStatus === "partial" && verdict === null && overallScore !== null) {
     const missing = unavailableHazards.length > 0 ? formatList(unavailableHazards) : "Some hazard";
@@ -87,7 +89,7 @@ export function VerdictBadge({
       <p className="text-lg font-semibold">
         Overall Climate Risk Score: {clampedScore} / 100
       </p>
-      <p className="max-w-xl text-sm opacity-90">{style.explanation}</p>
+      <p className="max-w-xl text-sm opacity-90">{verdictReason ?? style.explanation}</p>
     </div>
   );
 }

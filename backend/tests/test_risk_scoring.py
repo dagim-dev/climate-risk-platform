@@ -18,6 +18,7 @@ from app.services.scoring.aggregator import build_risk_report
 from app.services.scoring.flood_scorer import score_flood_risk
 from app.services.scoring.hazard_utils import (
     compute_overall_score,
+    compute_verdict,
     score_hazard_from_source,
     score_to_verdict,
     unavailable_hazard,
@@ -221,6 +222,42 @@ def test_all_hazard_scores_stay_within_range():
 )
 def test_verdict_thresholds(overall_score, expected_verdict):
     assert score_to_verdict(overall_score) == expected_verdict
+
+
+def test_single_high_hazard_raises_go_to_caution():
+    # Paradise, CA: wildfire 70 but no flood or hurricane exposure averages to "Go".
+    hazards = (_hazard(12), _hazard(0), _hazard(56), _hazard(70))
+    verdict, reason = compute_verdict(29, "complete", hazards)
+
+    assert verdict == "Caution"
+    assert reason is not None and "Wildfire (70/100)" in reason
+
+
+def test_multiple_high_hazards_are_all_named():
+    _, reason = compute_verdict(34, "complete", (_hazard(80), _hazard(0), _hazard(0), _hazard(72)))
+
+    assert reason == (
+        "Raised to Caution: Flood (80/100) and Wildfire (72/100) are high "
+        "even though the combined score is low."
+    )
+
+
+def test_go_stays_go_when_no_hazard_is_high():
+    verdict, reason = compute_verdict(15, "complete", (_hazard(12), _hazard(6), _hazard(44), _hazard(3)))
+
+    assert verdict == "Go"
+    assert reason is None
+
+
+def test_high_average_verdict_is_not_changed_by_floor():
+    verdict, reason = compute_verdict(75, "complete", (_hazard(90), _hazard(100), _hazard(87), _hazard(1)))
+
+    assert verdict == "Avoid"
+    assert reason is None
+
+
+def test_no_verdict_when_partial_even_with_high_hazard():
+    assert compute_verdict(40, "partial", (_hazard(90), _hazard(0), _hazard(0), _hazard(0))) == (None, None)
 
 
 def test_score_to_verdict_none_when_overall_unavailable():

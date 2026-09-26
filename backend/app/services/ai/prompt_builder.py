@@ -38,7 +38,7 @@ def build_risk_prompt(report: ClimateRiskReport) -> tuple[str, str]:
         else "Overall climate risk score: withheld (one or more hazards not assessed)."
     )
     verdict_line = (
-        f"Verdict: {report.verdict}."
+        f"Verdict: {report.verdict}." + (f" {report.verdict_reason}" if report.verdict_reason else "")
         if report.verdict is not None
         else "Verdict: withheld because not every hazard could be assessed."
     )

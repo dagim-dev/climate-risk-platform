@@ -54,6 +54,7 @@ export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) 
         overallScore={report.overall_risk_score}
         overallStatus={report.overall_status}
         unavailableHazards={unavailableHazardNames(report)}
+        verdictReason={report.verdict_reason}
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
