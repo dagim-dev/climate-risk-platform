@@ -89,11 +89,12 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>FEMA National Flood Hazard Layer (NFHL):</strong> provides
-              flood-zone and flood-hazard data.
+              flood-zone and flood-hazard data, queried from FEMA or its Esri
+              Living Atlas mirror.
             </li>
             <li>
-              <strong>USGS / NIFC wildfire services:</strong> provide wildfire
-              perimeter data used in wildfire analysis.
+              <strong>USFS and NIFC wildfire services:</strong> provide wildfire
+              hazard potential and fire perimeter data used in wildfire analysis.
             </li>
             <li>
               <strong>OpenAI:</strong> receives report data when the app requests

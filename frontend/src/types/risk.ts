@@ -39,6 +39,7 @@ export interface ClimateRiskReport {
   overall_risk_score: number | null;
   overall_status?: OverallStatus;
   verdict: Verdict | null;
+  verdict_reason?: string | null;
   sources?: Record<string, SourceStatus>;
   ai_summary?: string;
   generated_at: string;

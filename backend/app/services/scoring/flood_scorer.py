@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.schemas.risk import HazardScore
-from app.services.climate.flood_data import FloodZoneData
+from app.services.climate.flood_data import PROVIDER_FEMA, FloodZoneData
 from app.services.scoring.helpers import (
     clamp_score,
     is_within_miles_of_coast,
@@ -45,6 +45,9 @@ def score_flood_risk(
         factors.append(
             f"Special Flood Hazard Area with BFE {flood_data.base_flood_elevation:.1f} ft"
         )
+
+    if flood_data.provider != PROVIDER_FEMA:
+        factors[0] = f"{factors[0]} [{flood_data.provider}]"
 
     final_score = clamp_score(score)
     return HazardScore(

@@ -7,6 +7,7 @@ from app.services.climate.heat_data import HeatRiskData
 from app.services.climate.hurricane_data import HurricaneData
 from app.services.climate.wildfire_data import WildfireData
 from app.services.scoring.helpers import clamp_score, is_within_miles_of_coast
+from app.services.scoring.wildfire_scorer import FULL_EXPOSURE_BURNABLE_SHARE, whp_exposure
 
 HISTORICAL_CHECKPOINTS = (2000, 2010, 2020)
 PROJECTION_CHECKPOINTS = (2030, 2040, 2050)
@@ -18,15 +19,16 @@ def _heat_growth_rate(heat_data: HeatRiskData) -> float:
         rate += 0.25
     elif heat_data.trend_direction == "decreasing":
         rate -= 0.15
-    if heat_data.projected_2050_delta_c > 2.0:
+    if heat_data.hot_days_trend_per_decade > 10.0:
         rate += 0.15
     return rate
 
 
 def _wildfire_growth_rate(wildfire_data: WildfireData) -> float:
-    if wildfire_data.wui_classification in {"High-WUI", "Intermix"}:
+    burnable_share, _, high_share = whp_exposure(wildfire_data.whp_class_shares)
+    if high_share >= 0.2:
         return 0.55
-    if wildfire_data.wui_classification == "Interface":
+    if burnable_share >= FULL_EXPOSURE_BURNABLE_SHARE or high_share > 0:
         return 0.35
     return 0.12
 
@@ -37,7 +39,7 @@ def _hurricane_growth_rate(
     longitude: float,
 ) -> float:
     coastal = is_within_miles_of_coast(latitude, longitude, miles=50)
-    if coastal and hurricane_data.historical_storm_count > 0:
+    if coastal and hurricane_data.hurricane_passes_100km > 0:
         return 0.4
     if coastal:
         return 0.25

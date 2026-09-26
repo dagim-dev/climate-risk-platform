@@ -24,9 +24,9 @@ def test_build_historical_trend_includes_checkpoints():
         _hazard(70),
         _hazard(50),
         _hazard(40),
-        HeatRiskData(trend_direction="increasing", projected_2050_delta_c=3.0),
+        HeatRiskData(trend_direction="increasing", hot_days_trend_per_decade=12.0),
         HurricaneData(historical_storm_count=20),
-        WildfireData(wui_classification="High-WUI"),
+        WildfireData(whp_class_shares={4: 0.5, 5: 0.2, 6: 0.3}),
         latitude=25.7617,
         longitude=-80.1918,
     )
@@ -49,7 +49,7 @@ def test_build_historical_trend_scores_increase_over_time_for_coastal_heat():
         _hazard(45),
         HeatRiskData(trend_direction="increasing"),
         HurricaneData(historical_storm_count=10),
-        WildfireData(wui_classification="Interface"),
+        WildfireData(whp_class_shares={2: 0.4, 6: 0.6}),
         latitude=25.7617,
         longitude=-80.1918,
     )

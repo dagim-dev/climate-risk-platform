@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { VerdictBadge } from "@/components/dashboard/VerdictBadge";
+import { VerdictBadge, unavailableHazardNames } from "@/components/dashboard/VerdictBadge";
 import { RiskTrendChart } from "@/components/dashboard/RiskTrendChart";
 import {
   loadReportFromSession,
@@ -134,6 +134,8 @@ export function ReportPageContent() {
         verdict={report.verdict}
         overallScore={report.overall_risk_score}
         overallStatus={report.overall_status}
+        unavailableHazards={unavailableHazardNames(report)}
+        verdictReason={report.verdict_reason}
       />
 
       <section className="report-score-grid grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -157,7 +159,7 @@ export function ReportPageContent() {
       )}
 
       <footer className="report-section border-t border-zinc-200 pt-4 text-center text-xs text-zinc-500">
-        Risk data sourced from NOAA, FEMA NFHL, and USGS.
+        Risk data sourced from NOAA, FEMA NFHL, USFS, and NIFC.
       </footer>
     </div>
   );

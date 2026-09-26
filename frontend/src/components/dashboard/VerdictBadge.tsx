@@ -1,13 +1,55 @@
-import type { OverallStatus, Verdict } from "@/types/risk";
+import type { ClimateRiskReport, HazardScore, OverallStatus, Verdict } from "@/types/risk";
 import { verdictStyles } from "@/lib/risk-styles";
 
 interface VerdictBadgeProps {
   verdict: Verdict | null;
   overallScore: number | null;
   overallStatus?: OverallStatus;
+  unavailableHazards?: string[];
+  verdictReason?: string | null;
 }
 
-export function VerdictBadge({ verdict, overallScore, overallStatus }: VerdictBadgeProps) {
+export function unavailableHazardNames(report: ClimateRiskReport): string[] {
+  const hazards: [string, HazardScore][] = [
+    ["Flood", report.flood_risk],
+    ["Hurricane", report.hurricane_risk],
+    ["Heat", report.heat_risk],
+    ["Wildfire", report.wildfire_risk],
+  ];
+  return hazards
+    .filter(([, hazard]) => hazard.status === "unavailable" || hazard.score === null)
+    .map(([name]) => name);
+}
+
+function formatList(items: string[]): string {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+export function VerdictBadge({
+  verdict,
+  overallScore,
+  overallStatus,
+  unavailableHazards = [],
+  verdictReason = null,
+}: VerdictBadgeProps) {
+  if (overallStatus === "partial" && verdict === null && overallScore !== null) {
+    const missing = unavailableHazards.length > 0 ? formatList(unavailableHazards) : "Some hazard";
+    return (
+      <div
+        className="flex flex-col items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-6 py-8 text-center text-amber-950 shadow-md"
+        role="status"
+      >
+        <p className="text-xl font-bold sm:text-2xl">Verdict withheld</p>
+        <p className="max-w-xl text-sm">
+          {missing} data could not be retrieved, so we are not giving a Go / Caution / Avoid
+          verdict. Scores for the hazards we could assess are shown below. Try again later for a
+          complete assessment.
+        </p>
+      </div>
+    );
+  }
+
   if (overallStatus === "unavailable" || verdict === null || overallScore === null) {
     return (
       <div
@@ -47,7 +89,7 @@ export function VerdictBadge({ verdict, overallScore, overallStatus }: VerdictBa
       <p className="text-lg font-semibold">
         Overall Climate Risk Score: {clampedScore} / 100
       </p>
-      <p className="max-w-xl text-sm opacity-90">{style.explanation}</p>
+      <p className="max-w-xl text-sm opacity-90">{verdictReason ?? style.explanation}</p>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { AISummary } from "@/components/dashboard/AISummary";
 import { RiskTrendChart } from "@/components/dashboard/RiskTrendChart";
 import { SavePropertyButton } from "@/components/dashboard/SavePropertyButton";
 import { ScoreCard } from "@/components/dashboard/ScoreCard";
-import { VerdictBadge } from "@/components/dashboard/VerdictBadge";
+import { VerdictBadge, unavailableHazardNames } from "@/components/dashboard/VerdictBadge";
 import { saveReport } from "@/lib/report-storage";
 
 interface RiskDashboardProps {
@@ -53,6 +53,8 @@ export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) 
         verdict={report.verdict}
         overallScore={report.overall_risk_score}
         overallStatus={report.overall_status}
+        unavailableHazards={unavailableHazardNames(report)}
+        verdictReason={report.verdict_reason}
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -87,7 +89,7 @@ export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) 
       </div>
 
       <footer className="border-t border-zinc-200 pt-4 text-center text-xs text-zinc-500">
-        Risk data sourced from NOAA, FEMA NFHL, and USGS.
+        Risk data sourced from NOAA, FEMA NFHL, USFS, and NIFC.
       </footer>
     </div>
   );

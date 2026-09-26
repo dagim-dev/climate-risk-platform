@@ -18,6 +18,7 @@ from app.services.scoring.aggregator import build_risk_report
 from app.services.scoring.flood_scorer import score_flood_risk
 from app.services.scoring.hazard_utils import (
     compute_overall_score,
+    compute_verdict,
     score_hazard_from_source,
     score_to_verdict,
     unavailable_hazard,
@@ -69,13 +70,34 @@ def test_miami_beach_flood_and_hurricane_scores():
                 "category_4": 8,
                 "category_5": 3,
             },
+            tropical_systems_100km=24,
+            hurricane_passes_100km=6,
+            major_hurricane_passes_100km=2,
         ),
         MIAMI_LAT,
         MIAMI_LON,
     )
 
     assert flood.score >= 70
-    assert hurricane.score >= 80
+    assert hurricane.score >= 65
+    assert "6 hurricane-strength storms passed within 100 km" in hurricane.primary_factors[0]
+
+
+def test_inland_city_with_only_remnant_storms_scores_low_hurricane():
+    # Washington, DC: 13 weakened tropical systems nearby since 1976, none at hurricane strength.
+    hurricane = score_hurricane_risk(
+        HurricaneData(historical_storm_count=113, tropical_systems_100km=13),
+        38.8977,
+        -77.0365,
+    )
+
+    assert hurricane.score <= 15
+
+
+def test_desert_city_is_not_scored_for_its_latitude():
+    hurricane = score_hurricane_risk(HurricaneData(), PHOENIX_LAT, PHOENIX_LON)
+
+    assert hurricane.score == 0
 
 
 def test_denver_flood_and_hurricane_scores():
@@ -91,17 +113,43 @@ def test_denver_flood_and_hurricane_scores():
 
 
 def test_paradise_wildfire_score():
+    # USFS WHP class shares sampled around Paradise, CA (2 km box).
     wildfire = score_wildfire_risk(
         WildfireData(
-            fire_count_20_years=60,
-            fire_weather_zone="Western",
-            wui_classification="High-WUI",
+            fire_count_20_years=70,
+            whp_class_shares={2: 0.08, 3: 0.11, 4: 0.36, 6: 0.45},
         ),
         PARADISE_LAT,
         PARADISE_LON,
     )
 
-    assert wildfire.score >= 75
+    assert wildfire.score >= 60
+    assert "High or Very High" in wildfire.primary_factors[0]
+
+
+def test_dense_urban_coast_wildfire_stays_low_despite_regional_fire_history():
+    # Miami Beach: mostly non-burnable (6) and water (7), many Everglades fires within 50 km.
+    wildfire = score_wildfire_risk(
+        WildfireData(
+            fire_count_20_years=134,
+            whp_class_shares={1: 0.02, 2: 0.01, 6: 0.51, 7: 0.46},
+        ),
+        MIAMI_LAT,
+        MIAMI_LON,
+    )
+
+    assert wildfire.score < 20
+
+
+def test_no_burnable_land_scores_near_zero():
+    wildfire = score_wildfire_risk(
+        WildfireData(fire_count_20_years=0, whp_class_shares={6: 1.0}),
+        MIAMI_LAT,
+        MIAMI_LON,
+    )
+
+    assert wildfire.score == 0
+    assert "No burnable wildland" in wildfire.primary_factors[0]
 
 
 def test_phoenix_heat_score():
@@ -109,7 +157,7 @@ def test_phoenix_heat_score():
         HeatRiskData(
             extreme_heat_days_per_year=75.0,
             trend_direction="increasing",
-            projected_2050_delta_c=3.0,
+            hot_days_trend_per_decade=12.0,
         ),
         PHOENIX_LAT,
         PHOENIX_LON,
@@ -135,8 +183,8 @@ def test_all_hazard_scores_stay_within_range():
         (
             FloodZoneData(flood_zone="AE", base_flood_elevation=10.0, special_flood_hazard_area=True),
             HurricaneData(historical_storm_count=20, nearest_track_distance_km=20.0),
-            HeatRiskData(extreme_heat_days_per_year=40.0, trend_direction="increasing", projected_2050_delta_c=2.5),
-            WildfireData(fire_count_20_years=25, fire_weather_zone="Western", wui_classification="Intermix"),
+            HeatRiskData(extreme_heat_days_per_year=40.0, trend_direction="increasing", hot_days_trend_per_decade=8.0),
+            WildfireData(fire_count_20_years=25, whp_class_shares={3: 0.3, 4: 0.4, 5: 0.2, 6: 0.1}),
             MIAMI_LAT,
             MIAMI_LON,
         ),
@@ -174,6 +222,42 @@ def test_all_hazard_scores_stay_within_range():
 )
 def test_verdict_thresholds(overall_score, expected_verdict):
     assert score_to_verdict(overall_score) == expected_verdict
+
+
+def test_single_high_hazard_raises_go_to_caution():
+    # Paradise, CA: wildfire 70 but no flood or hurricane exposure averages to "Go".
+    hazards = (_hazard(12), _hazard(0), _hazard(56), _hazard(70))
+    verdict, reason = compute_verdict(29, "complete", hazards)
+
+    assert verdict == "Caution"
+    assert reason is not None and "Wildfire (70/100)" in reason
+
+
+def test_multiple_high_hazards_are_all_named():
+    _, reason = compute_verdict(34, "complete", (_hazard(80), _hazard(0), _hazard(0), _hazard(72)))
+
+    assert reason == (
+        "Raised to Caution: Flood (80/100) and Wildfire (72/100) are high "
+        "even though the combined score is low."
+    )
+
+
+def test_go_stays_go_when_no_hazard_is_high():
+    verdict, reason = compute_verdict(15, "complete", (_hazard(12), _hazard(6), _hazard(44), _hazard(3)))
+
+    assert verdict == "Go"
+    assert reason is None
+
+
+def test_high_average_verdict_is_not_changed_by_floor():
+    verdict, reason = compute_verdict(75, "complete", (_hazard(90), _hazard(100), _hazard(87), _hazard(1)))
+
+    assert verdict == "Avoid"
+    assert reason is None
+
+
+def test_no_verdict_when_partial_even_with_high_hazard():
+    assert compute_verdict(40, "partial", (_hazard(90), _hazard(0), _hazard(0), _hazard(0))) == (None, None)
 
 
 def test_score_to_verdict_none_when_overall_unavailable():
@@ -252,7 +336,7 @@ async def test_build_risk_report_integration():
                         HeatRiskData(
                             extreme_heat_days_per_year=55.0,
                             trend_direction="increasing",
-                            projected_2050_delta_c=2.5,
+                            hot_days_trend_per_decade=8.0,
                         )
                     )
                 ),
@@ -265,8 +349,7 @@ async def test_build_risk_report_integration():
                     return_value=_ok_result(
                         WildfireData(
                             fire_count_20_years=5,
-                            fire_weather_zone="Southern Plains",
-                            wui_classification="Interface",
+                            whp_class_shares={1: 0.2, 2: 0.1, 6: 0.7},
                         )
                     )
                 ),
@@ -322,6 +405,7 @@ async def test_build_risk_report_marks_partial_when_flood_unavailable():
     assert report.flood_risk.score is None
     assert report.overall_status == "partial"
     assert report.overall_risk_score is not None
+    assert report.verdict is None
 
 
 def test_analyze_endpoint_returns_report():
@@ -471,7 +555,7 @@ async def test_noaa_heat_missing_api_key_serves_stale_cache(monkeypatch):
     heat = HeatRiskData(
         extreme_heat_days_per_year=55.0,
         trend_direction="increasing",
-        projected_2050_delta_c=2.5,
+        hot_days_trend_per_decade=8.0,
     )
     fetched_at = datetime.now(timezone.utc)
 
@@ -493,7 +577,7 @@ async def test_noaa_heat_live_failure_serves_stale_cache(monkeypatch):
     heat = HeatRiskData(
         extreme_heat_days_per_year=40.0,
         trend_direction="stable",
-        projected_2050_delta_c=1.0,
+        hot_days_trend_per_decade=1.0,
     )
     fetched_at = datetime.now(timezone.utc)
 
