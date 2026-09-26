@@ -5,8 +5,8 @@ import json
 import logging
 import math
 import time
-from datetime import datetime
-from typing import Dict, List
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
 
 import httpx
 from pydantic import BaseModel
@@ -42,7 +42,8 @@ WHP_TIMEOUT = httpx.Timeout(6.0, connect=3.0)
 
 
 class WildfireData(BaseModel):
-    fire_count_20_years: int = 0
+    # None when the NIFC perimeter history could not be fetched (WHP alone is still scored).
+    fire_count_20_years: Optional[int] = 0
     # Share of pixels in each USFS Wildfire Hazard Potential class within WHP_BOX_KM of the
     # property. Keys are class codes: 1 very low … 5 very high, 6 non-burnable, 7 water.
     whp_class_shares: Dict[int, float] = {}
@@ -66,7 +67,8 @@ def parse_whp_histogram(data: dict) -> Dict[int, float]:
     for index, count in enumerate(counts):
         if not count:
             continue
-        whp_class = int(round(minimum + index * bin_width + bin_width / 2))
+        # Round half up (not Python's banker's rounding) so a bin centred on x.5 is stable.
+        whp_class = math.floor(minimum + index * bin_width + bin_width / 2 + 0.5)
         if whp_class in WHP_CLASSES:
             class_counts[whp_class] = class_counts.get(whp_class, 0) + count
 
@@ -103,15 +105,25 @@ async def _fetch_whp_class_shares(latitude: float, longitude: float) -> Dict[int
 
 
 async def _fetch_wildfire_live(latitude: float, longitude: float) -> WildfireData:
-    whp_class_shares, fire_count = await asyncio.gather(
+    whp_result, fire_result = await asyncio.gather(
         _fetch_whp_class_shares(latitude, longitude),
         _fetch_fire_count(latitude, longitude),
+        return_exceptions=True,
     )
-    return WildfireData(fire_count_20_years=fire_count, whp_class_shares=whp_class_shares)
+    # WHP is the primary signal; without it there is nothing honest to score.
+    if isinstance(whp_result, BaseException):
+        raise whp_result
+    fire_count: Optional[int]
+    if isinstance(fire_result, BaseException):
+        logger.warning("NIFC perimeter history unavailable: %s", str(fire_result) or type(fire_result).__name__)
+        fire_count = None
+    else:
+        fire_count = fire_result
+    return WildfireData(fire_count_20_years=fire_count, whp_class_shares=whp_result)
 
 
 async def _fetch_fire_count(latitude: float, longitude: float) -> int:
-    cutoff_year = datetime.utcnow().year - LOOKBACK_YEARS
+    cutoff_year = datetime.now(timezone.utc).year - LOOKBACK_YEARS
     where = f"FIRE_YEAR_INT >= {cutoff_year} AND FEATURE_CA LIKE '%Final%'"
     deadline = time.monotonic() + WILDFIRE_FETCH_DEADLINE_SECONDS
 
@@ -131,7 +143,8 @@ async def _fetch_fire_count(latitude: float, longitude: float) -> int:
                 "spatialRel": "esriSpatialRelIntersects",
                 "distance": SEARCH_RADIUS_M,
                 "units": "esriSRUnit_Meter",
-                "outFields": "INCIDENT,FIRE_YEAR_INT,GIS_ACRES,FEATURE_CA",
+                "outFields": "OBJECTID,INCIDENT,FIRE_YEAR_INT",
+                "orderByFields": "OBJECTID",
                 "returnGeometry": "false",
                 "f": "json",
                 "resultRecordCount": 2000,
@@ -153,13 +166,16 @@ async def _fetch_fire_count(latitude: float, longitude: float) -> int:
                 break
             offset += len(features)
 
-    unique_fires = {
-        (
-            feature.get("attributes", {}).get("INCIDENT"),
-            feature.get("attributes", {}).get("FIRE_YEAR_INT"),
-        )
-        for feature in all_features
-    }
+    # The layer can hold several perimeter records per fire; collapse by name and year.
+    # Unnamed records can't be matched, so each counts on its own.
+    unique_fires = set()
+    for feature in all_features:
+        attributes = feature.get("attributes") or {}
+        name = str(attributes.get("INCIDENT") or "").strip().upper()
+        if name:
+            unique_fires.add((name, attributes.get("FIRE_YEAR_INT")))
+        else:
+            unique_fires.add(("#", attributes.get("OBJECTID")))
     return len(unique_fires)
 
 

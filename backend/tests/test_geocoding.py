@@ -102,3 +102,17 @@ async def test_invalid_address_raises_value_error():
 def test_empty_address_raises_validation_error():
     with pytest.raises(ValidationError):
         AddressRequest(address="")
+
+
+@pytest.mark.asyncio
+async def test_rejected_api_key_is_a_service_error_not_a_bad_address():
+    from app.services.geocoding import GeocodingServiceError
+
+    mock_http_client = _mock_httpx_client({"status": "REQUEST_DENIED", "results": []})
+
+    with patch(
+        "app.services.geocoding.httpx.AsyncClient",
+        return_value=mock_http_client,
+    ):
+        with pytest.raises(GeocodingServiceError):
+            await geocode_address("1600 Pennsylvania Ave, Washington, DC")

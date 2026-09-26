@@ -57,8 +57,6 @@ async def build_risk_report(coordinates: Coordinates) -> ClimateRiskReport:
         heat_result.data or HeatRiskData(),
         hurricane_result.data or HurricaneData(),
         wildfire_result.data or WildfireData(),
-        latitude,
-        longitude,
     )
 
     verdict, verdict_reason = compute_verdict(

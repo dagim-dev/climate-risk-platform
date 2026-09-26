@@ -24,10 +24,11 @@ class SourceStatus(BaseModel):
 
 class TrendPoint(BaseModel):
     year: int
-    flood_score: int = Field(..., ge=0, le=100)
-    hurricane_score: int = Field(..., ge=0, le=100)
-    heat_score: int = Field(..., ge=0, le=100)
-    wildfire_score: int = Field(..., ge=0, le=100)
+    # None when that hazard could not be assessed (nothing to project from).
+    flood_score: Optional[int] = Field(None, ge=0, le=100)
+    hurricane_score: Optional[int] = Field(None, ge=0, le=100)
+    heat_score: Optional[int] = Field(None, ge=0, le=100)
+    wildfire_score: Optional[int] = Field(None, ge=0, le=100)
     is_projection: bool = False
 
 

@@ -68,11 +68,16 @@ def score_wildfire_risk(
         )
 
     fire_count = wildfire_data.fire_count_20_years
-    if fire_count > 0:
+    if fire_count is None:
+        factors.append("NIFC fire perimeter history unavailable; score uses USFS hazard potential only")
+    elif fire_count > 0:
         score += min(MAX_HISTORY_BONUS, fire_count / FIRES_PER_HISTORY_POINT)
         factors.append(f"{fire_count} mapped wildfire perimeters within 50 km in the last 20 years (NIFC)")
 
-    confidence = "High" if wildfire_data.whp_class_shares else "Low"
+    if not wildfire_data.whp_class_shares:
+        confidence = "Low"
+    else:
+        confidence = "High" if fire_count is not None else "Medium"
 
     final_score = clamp_score(score)
     return HazardScore(

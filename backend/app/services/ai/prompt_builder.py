@@ -12,6 +12,26 @@ def _format_hazard(name: str, hazard: HazardScore) -> str:
     )
 
 
+def _assessed(hazard: HazardScore) -> bool:
+    return hazard.status != "unavailable" and hazard.score is not None
+
+
+def _attribution(report: ClimateRiskReport) -> str:
+    """Credit only the providers whose data was actually used in this report."""
+    sources = []
+    if _assessed(report.hurricane_risk):
+        sources.append("NOAA IBTrACS")
+    if _assessed(report.heat_risk):
+        sources.append("NOAA NCEI")
+    if _assessed(report.flood_risk):
+        sources.append("FEMA NFHL")
+    if _assessed(report.wildfire_risk):
+        sources.append("USFS")
+        if not any("NIFC" in factor and "unavailable" in factor for factor in report.wildfire_risk.primary_factors):
+            sources.append("NIFC")
+    return ", ".join(sources) or "no external data sources"
+
+
 def build_risk_prompt(report: ClimateRiskReport) -> tuple[str, str]:
     system_prompt = (
         "Act as a senior climate risk analyst writing for property investors. "
@@ -54,7 +74,7 @@ Write:
 2. The single biggest risk driver among the assessed hazards.
 3. A forward-looking statement beginning exactly: "Over the next 10–30 years..."
 4. A restatement of the verdict with justification (or explain why no verdict is available).
-5. A closing attribution naming NOAA, FEMA NFHL, USFS, and NIFC.
+5. A closing attribution naming {_attribution(report)}.
 """
 
     return system_prompt, user_prompt

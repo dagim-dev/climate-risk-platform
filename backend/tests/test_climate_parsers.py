@@ -1,6 +1,11 @@
 import pytest
 
-from app.services.climate.flood_data import PROVIDER_FALLBACK, parse_flood_zone_response
+from app.services.climate.flood_data import (
+    PROVIDER_FALLBACK,
+    FloodZoneUndetermined,
+    parse_flood_zone_response,
+)
+from app.services.scoring.flood_scorer import score_flood_risk
 from app.services.climate.heat_data import (
     hot_days_trend_per_decade,
     parse_annual_hot_days,
@@ -27,11 +32,63 @@ def test_parse_fema_nfhl_selects_highest_risk_zone():
     assert parsed.base_flood_elevation == 8.0
 
 
-def test_parse_fema_nfhl_defaults_when_empty():
-    parsed = parse_flood_zone_response({"features": []})
-    assert parsed.flood_zone == "X"
-    assert parsed.special_flood_hazard_area is False
+def test_parse_fema_nfhl_without_map_coverage_is_undetermined():
+    # The full NFHL includes minimal-hazard zone X, so no polygon means no flood map here.
+    with pytest.raises(FloodZoneUndetermined):
+        parse_flood_zone_response({"features": []})
+
+
+def test_parse_fallback_miss_is_unconfirmed_not_zone_x():
+    parsed = parse_flood_zone_response({"features": []}, provider=PROVIDER_FALLBACK)
+    assert parsed.mapped is False
+    hazard = score_flood_risk(parsed, 39.7392, -104.9903)
+    assert hazard.confidence == "Low"
+    assert "Outside FEMA-mapped" in hazard.primary_factors[0]
+
+
+def test_parse_fema_zone_d_is_undetermined():
+    with pytest.raises(FloodZoneUndetermined):
+        parse_flood_zone_response({"features": [{"attributes": {"FLD_ZONE": "D", "SFHA_TF": "F"}}]})
+
+
+def test_bfe_sentinel_is_treated_as_missing():
+    parsed = parse_flood_zone_response(
+        {"features": [{"attributes": {"FLD_ZONE": "AE", "SFHA_TF": "T", "STATIC_BFE": -9999}}]}
+    )
     assert parsed.base_flood_elevation is None
+    hazard = score_flood_risk(parsed, 39.7392, -104.9903)
+    assert not any("BFE" in factor for factor in hazard.primary_factors)
+
+
+@pytest.mark.parametrize(
+    "subtype",
+    ["0.2 PCT ANNUAL CHANCE FLOOD HAZARD", "0.2 Percent Annual Chance Flood Hazard"],
+)
+def test_shaded_zone_x_scores_moderate(subtype):
+    # Real response for downtown New Orleans (SFHA_TF is "F" for shaded X).
+    parsed = parse_flood_zone_response(
+        {"features": [{"attributes": {"FLD_ZONE": "X", "ZONE_SUBTY": subtype, "SFHA_TF": "F", "STATIC_BFE": None}}]}
+    )
+    hazard = score_flood_risk(parsed, 39.7392, -104.9903)
+    assert hazard.score == 40
+    assert "0.2%" in hazard.primary_factors[0]
+
+
+def test_shaded_x_outranks_unshaded_x_and_a99_is_high_risk():
+    parsed = parse_flood_zone_response(
+        {
+            "features": [
+                {"attributes": {"FLD_ZONE": "X", "ZONE_SUBTY": "AREA OF MINIMAL FLOOD HAZARD", "SFHA_TF": "F"}},
+                {"attributes": {"FLD_ZONE": "X", "ZONE_SUBTY": "AREA WITH REDUCED FLOOD RISK DUE TO LEVEE", "SFHA_TF": "F"}},
+            ]
+        }
+    )
+    assert "LEVEE" in parsed.zone_subtype
+    a99 = parse_flood_zone_response(
+        {"features": [{"attributes": {"FLD_ZONE": "X", "SFHA_TF": "F"}}, {"attributes": {"FLD_ZONE": "A99", "SFHA_TF": "T"}}]}
+    )
+    assert a99.flood_zone == "A99"
+    assert score_flood_risk(a99, 39.7392, -104.9903).score >= 80
 
 
 def test_parse_ibtracs_hurricane_features():
@@ -152,3 +209,51 @@ def test_parse_flood_zone_records_fallback_provider():
     )
     assert parsed.flood_zone == "VE"
     assert parsed.provider == PROVIDER_FALLBACK
+
+
+def test_peak_wind_does_not_inflate_close_pass_intensity():
+    # A storm that is a tropical storm while near the property but a major hurricane
+    # far away must count as a tropical system here, not a hurricane pass.
+    features = [
+        {"attributes": {"OBJECTID": 1, "SID": "S1", "year": 2020, "USA_WIND": 40, "LAT": 25.80, "LON": -80.10, "Hurricane_Date": 1}},
+        {"attributes": {"OBJECTID": 2, "SID": "S1", "year": 2020, "USA_WIND": 40, "LAT": 25.90, "LON": -80.00, "Hurricane_Date": 2}},
+        {"attributes": {"OBJECTID": 3, "SID": "S1", "year": 2020, "USA_WIND": 45, "LAT": 27.50, "LON": -78.00, "Hurricane_Date": 3}},
+        {"attributes": {"OBJECTID": 4, "SID": "S1", "year": 2020, "USA_WIND": 120, "LAT": 29.50, "LON": -75.00, "Hurricane_Date": 4}},
+    ]
+    parsed = parse_hurricane_response({"features": features}, 25.79, -80.13, 1976)
+
+    assert parsed.tropical_systems_100km == 1
+    assert parsed.hurricane_passes_100km == 0
+    assert parsed.category_distribution["category_4"] == 1
+    assert features[0]["attributes"]["USA_WIND"] == 40
+
+
+def test_hurricane_parser_skips_blank_numeric_fields():
+    features = [
+        {"attributes": {"SID": "S1", "year": 2020, "USA_WIND": " ", "LAT": "", "LON": -80.1, "Hurricane_Date": "x"}},
+        {"attributes": {"SID": "S2", "year": 2020, "USA_WIND": 70, "LAT": 25.8, "LON": -80.1, "Hurricane_Date": 5}},
+    ]
+    parsed = parse_hurricane_response({"features": features}, 25.79, -80.13, 1976)
+
+    assert parsed.historical_storm_count == 2
+    assert parsed.hurricane_passes_100km == 1
+
+
+def test_hot_days_trend_uses_actual_years_across_gaps():
+    # +1 day/year, but with a 10-year gap in the record: still +10 days per decade.
+    years = [2000, 2001, 2002, 2013, 2014, 2015]
+    values = [float(year - 2000) for year in years]
+    assert hot_days_trend_per_decade(values, years) == 10.0
+
+
+def test_parse_whp_histogram_with_zero_based_bins():
+    # Bins centred on x.5 must not be shifted by banker's rounding.
+    payload = {"histograms": [{"size": 7, "min": 0, "max": 7, "counts": [0, 0, 0, 0, 5, 0, 5]}]}
+    assert parse_whp_histogram(payload) == {5: 0.5, 7: 0.5}
+
+
+def test_parse_whp_histogram_matches_live_service_shape():
+    # Shape returned by the real service for Paradise, CA (bins centred on integers).
+    payload = {"histograms": [{"size": 7, "min": -0.5, "max": 6.5, "counts": [0, 0, 30, 38, 131, 0, 162]}]}
+    shares = parse_whp_histogram(payload)
+    assert set(shares) == {2, 3, 4, 6}

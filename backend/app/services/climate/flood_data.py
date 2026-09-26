@@ -17,7 +17,8 @@ NFHL_FLOOD_ZONE_URL = (
 )
 # Esri Living Atlas mirror of the NFHL flood hazard polygons (same FLD_ZONE/SFHA_TF/STATIC_BFE
 # fields). Used when hazards.fema.gov is unreachable, which it is from many non-US networks.
-# The "reduced set" omits minimal-hazard zone X polygons, so no match reads as zone X.
+# The "reduced set" keeps 1% and 0.2% zones and levee areas but omits minimal-hazard zone X,
+# so a miss there means "outside mapped hazard areas" and can't rule out an unmapped area.
 NFHL_FALLBACK_URL = (
     "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/"
     "USA_Flood_Hazard_Reduced_Set_gdb/FeatureServer/0/query"
@@ -28,7 +29,14 @@ FLOOD_OUT_FIELDS = "FLD_ZONE,ZONE_SUBTY,SFHA_TF,STATIC_BFE"
 FEMA_TIMEOUT = httpx.Timeout(8.0, connect=3.0)
 FALLBACK_TIMEOUT = httpx.Timeout(6.0, connect=3.0)
 
-ZONE_RISK_ORDER = ("VE", "V", "AE", "A", "AH", "AO", "X")
+# NFHL stores "no base flood elevation" as -9999.
+BFE_MISSING_SENTINEL = -9000.0
+# Zones where FEMA has not determined the flood hazard at all.
+UNDETERMINED_ZONES = {"D", "AREA NOT INCLUDED"}
+
+
+class FloodZoneUndetermined(RuntimeError):
+    """FEMA has no flood hazard determination here; not a transient failure to fall back from."""
 
 
 class FloodZoneData(BaseModel):
@@ -36,20 +44,52 @@ class FloodZoneData(BaseModel):
     base_flood_elevation: Optional[float]
     special_flood_hazard_area: bool
     provider: str = PROVIDER_FEMA
+    # FEMA ZONE_SUBTY, e.g. "0.2 PCT ANNUAL CHANCE FLOOD HAZARD" for shaded zone X.
+    zone_subtype: Optional[str] = None
+    # False when no mapped polygon matched on the reduced-set mirror (see NFHL_FALLBACK_URL).
+    mapped: bool = True
+
+
+def is_high_risk_zone(zone: str) -> bool:
+    """1% annual chance Special Flood Hazard Area zones (A*, V*, AR*, A99)."""
+    return zone in {"A", "AE", "A99", "V", "VE"} or zone.startswith("AR")
+
+
+def is_moderate_x_subtype(subtype: Optional[str]) -> bool:
+    """Shaded zone X: 0.2% annual chance, or reduced risk behind a levee."""
+    text = (subtype or "").upper()
+    return "0.2" in text or "LEVEE" in text
+
+
+def _zone_rank(attributes: dict) -> int:
+    zone = str(attributes.get("FLD_ZONE") or "").strip().upper()
+    if zone in {"V", "VE"}:
+        return 0
+    if is_high_risk_zone(zone):
+        return 1
+    if zone in {"AH", "AO"}:
+        return 2
+    if zone == "X" and is_moderate_x_subtype(attributes.get("ZONE_SUBTY")):
+        return 3
+    if zone == "X":
+        return 4
+    if zone in UNDETERMINED_ZONES:
+        return 5
+    return 6
 
 
 def _select_highest_risk_zone(features: list) -> Optional[dict]:
     if not features:
         return None
+    return min(features, key=lambda feature: _zone_rank(feature.get("attributes") or {}))
 
-    def zone_rank(feature: dict) -> int:
-        zone = (feature.get("attributes") or {}).get("FLD_ZONE", "X")
-        try:
-            return ZONE_RISK_ORDER.index(zone)
-        except ValueError:
-            return len(ZONE_RISK_ORDER)
 
-    return min(features, key=zone_rank)
+def _parse_bfe(value: object) -> Optional[float]:
+    try:
+        bfe = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return bfe if bfe > BFE_MISSING_SENTINEL else None
 
 
 async def _query_flood_zones(url: str, latitude: float, longitude: float, timeout: httpx.Timeout) -> dict:
@@ -68,6 +108,8 @@ async def _fetch_flood_zone_live(latitude: float, longitude: float) -> FloodZone
     try:
         data = await _query_flood_zones(NFHL_FLOOD_ZONE_URL, latitude, longitude, FEMA_TIMEOUT)
         return parse_flood_zone_response(data, provider=PROVIDER_FEMA)
+    except FloodZoneUndetermined:
+        raise
     except Exception as exc:
         logger.warning(
             "FEMA NFHL query failed (%s); trying Living Atlas mirror",
@@ -89,22 +131,31 @@ async def get_flood_zone_data(latitude: float, longitude: float) -> SourceResult
 
 
 def parse_flood_zone_response(data: dict, provider: str = PROVIDER_FEMA) -> FloodZoneData:
-    feature = _select_highest_risk_zone(data.get("features", []))
+    feature = _select_highest_risk_zone(data.get("features") or [])
     if feature is None:
+        if provider == PROVIDER_FEMA:
+            # The full NFHL layer includes minimal-hazard zone X, so no polygon at all means
+            # there is no digital FEMA flood map here.
+            raise FloodZoneUndetermined("No digital FEMA flood map covers this location")
         return FloodZoneData(
             flood_zone="X",
             base_flood_elevation=None,
             special_flood_hazard_area=False,
             provider=provider,
+            mapped=False,
         )
 
-    attributes = feature.get("attributes", {})
-    sfha = attributes.get("SFHA_TF")
-    bfe = attributes.get("STATIC_BFE")
+    attributes = feature.get("attributes") or {}
+    zone = str(attributes.get("FLD_ZONE") or "").strip().upper()
+    if not zone or zone in UNDETERMINED_ZONES:
+        raise FloodZoneUndetermined(
+            "FEMA has not determined the flood hazard at this location (zone D or unstudied area)"
+        )
 
     return FloodZoneData(
-        flood_zone=attributes.get("FLD_ZONE") or "X",
-        base_flood_elevation=float(bfe) if bfe is not None else None,
-        special_flood_hazard_area=str(sfha).upper() == "T",
+        flood_zone=zone,
+        base_flood_elevation=_parse_bfe(attributes.get("STATIC_BFE")),
+        special_flood_hazard_area=str(attributes.get("SFHA_TF")).upper() == "T",
         provider=provider,
+        zone_subtype=attributes.get("ZONE_SUBTY") or None,
     )

@@ -1,6 +1,10 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 from app.schemas.address import AddressRequest, Coordinates
-from app.services.geocoding import geocode_address
+from app.services.geocoding import GeocodingServiceError, geocode_address
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -11,3 +15,6 @@ async def geocode(request: AddressRequest):
         return await geocode_address(request.address)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except GeocodingServiceError:
+        logger.exception("Geocoding service failed")
+        raise HTTPException(status_code=502, detail="Address lookup is temporarily unavailable.")

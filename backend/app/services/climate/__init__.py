@@ -1,5 +1,3 @@
-from pydantic import BaseModel
-
 from app.services.climate.flood_data import FloodZoneData, get_flood_zone_data
 from app.services.climate.heat_data import HeatRiskData, get_heat_risk_data
 from app.services.climate.hurricane_data import HurricaneData, get_hurricane_data
