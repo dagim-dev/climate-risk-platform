@@ -61,7 +61,7 @@ export default function TermsPage() {
           </h2>
           <p>
             ClimateRisk depends on third-party services and public datasets,
-            including Google Maps Geocoding, NOAA, FEMA NFHL, USGS/NIFC wildfire
+            including Google Maps Geocoding, NOAA, FEMA NFHL, USFS and NIFC wildfire
             services, OpenAI for optional summaries, and Sentry for monitoring when
             enabled.
           </p>

@@ -51,6 +51,28 @@ def test_build_risk_prompt_includes_report_values_and_requested_sections():
         assert value in user_prompt
 
     assert "Over the next 10–30 years..." in user_prompt
-    assert "NOAA, FEMA NFHL, and USGS" in user_prompt
+    assert "NOAA, FEMA NFHL, USFS, and NIFC" in user_prompt
     assert "EarthData" not in user_prompt
     assert "No primary factors reported" in user_prompt
+
+
+def test_build_risk_prompt_forbids_guessing_unassessed_hazards():
+    report = _report()
+    report.flood_risk = HazardScore(
+        status="unavailable",
+        score=None,
+        severity=None,
+        confidence="None",
+        primary_factors=[],
+        unavailable_reason="FEMA timeout",
+    )
+    report.overall_status = "partial"
+    report.verdict = None
+
+    system_prompt, user_prompt = build_risk_prompt(report)
+
+    assert "Flood: NOT ASSESSED" in user_prompt
+    assert "Flood: 82/100" not in user_prompt
+    assert "Overall climate risk score: withheld" in user_prompt
+    assert "Verdict: withheld" in user_prompt
+    assert "never estimate" in system_prompt.lower()

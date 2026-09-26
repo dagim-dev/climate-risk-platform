@@ -1,14 +1,20 @@
 from __future__ import annotations
 
 from app.schemas.risk import HazardScore
-from app.services.climate.hurricane_data import HurricaneData
+from app.services.climate.hurricane_data import LOOKBACK_YEARS, PASS_RADIUS_KM, HurricaneData
 from app.services.scoring.helpers import (
     clamp_score,
     is_within_miles_of_coast,
     score_to_severity,
 )
 
-LOOKBACK_DECADES = 5
+POINTS_PER_HURRICANE_PASS = 7.0
+MAX_PASS_POINTS = 70.0
+POINTS_PER_MAJOR_PASS = 5.0
+MAX_MAJOR_POINTS = 20.0
+POINTS_PER_TROPICAL_SYSTEM = 0.5
+MAX_TROPICAL_SYSTEM_POINTS = 10.0
+COASTAL_POINTS = 10.0
 
 
 def score_hurricane_risk(
@@ -17,45 +23,33 @@ def score_hurricane_risk(
     longitude: float,
 ) -> HazardScore:
     factors: list[str] = []
+    radius = f"{PASS_RADIUS_KM:.0f} km"
+    period = f"last {LOOKBACK_YEARS} years"
 
-    if 15 <= latitude <= 35:
-        score = 35.0
-        factors.append("Located in tropical hurricane latitude band (15°N–35°N)")
-    else:
-        score = 10.0
-        factors.append("Outside primary tropical hurricane latitude band")
+    passes = hurricane_data.hurricane_passes_100km
+    majors = hurricane_data.major_hurricane_passes_100km
+    systems = hurricane_data.tropical_systems_100km
 
-    storms_per_decade = hurricane_data.historical_storm_count / LOOKBACK_DECADES
-    if storms_per_decade > 0:
-        frequency_bonus = min(30.0, storms_per_decade * 3.0)
-        score += frequency_bonus
-        factors.append(f"{storms_per_decade:.1f} historical storms per decade nearby")
+    score = min(MAX_PASS_POINTS, passes * POINTS_PER_HURRICANE_PASS)
+    score += min(MAX_MAJOR_POINTS, majors * POINTS_PER_MAJOR_PASS)
+    score += min(MAX_TROPICAL_SYSTEM_POINTS, systems * POINTS_PER_TROPICAL_SYSTEM)
 
-    category_distribution = hurricane_data.category_distribution
-    major_storms = (
-        category_distribution.get("category_4", 0)
-        + category_distribution.get("category_5", 0)
-    )
-    if major_storms > 0:
-        score += min(25.0, major_storms * 5.0)
-        factors.append(f"{major_storms} Category 4/5 hurricanes in regional history")
+    if passes > 0:
+        factors.append(f"{passes} hurricane-strength storms passed within {radius} in the {period}")
+    if majors > 0:
+        factors.append(f"{majors} of them at Category 3 or stronger while within {radius}")
+    if systems > passes:
+        factors.append(f"{systems} tropical systems of any strength passed within {radius}")
 
-    if is_within_miles_of_coast(latitude, longitude, miles=25):
-        score *= 1.5
-        factors.append("Within 25 miles of the coast (elevated surge and wind exposure)")
+    coastal = is_within_miles_of_coast(latitude, longitude, miles=25)
+    if coastal and systems > 0:
+        score += COASTAL_POINTS
+        factors.append("Within 25 miles of the coast (storm surge and stronger winds)")
 
-    if hurricane_data.nearest_track_distance_km < 50:
-        score += 15.0
-        factors.append(
-            f"Nearest hurricane track {hurricane_data.nearest_track_distance_km:.0f} km away"
-        )
+    if not factors:
+        factors.append(f"No tropical storm tracks within {radius} in the {period} (NOAA IBTrACS)")
 
-    if hurricane_data.historical_storm_count > 0:
-        confidence = "High"
-    elif is_within_miles_of_coast(latitude, longitude, miles=25):
-        confidence = "Medium"
-    else:
-        confidence = "Low"
+    confidence = "High" if hurricane_data.historical_storm_count > 0 or not coastal else "Medium"
 
     final_score = clamp_score(score)
     return HazardScore(

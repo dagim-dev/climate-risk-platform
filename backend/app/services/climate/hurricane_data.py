@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 import logging
+import math
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Tuple
 
 import httpx
 from pydantic import BaseModel, Field
@@ -21,6 +23,15 @@ IBTRACS_QUERY_URL = (
 SEARCH_RADIUS_KM = 500
 SEARCH_RADIUS_M = SEARCH_RADIUS_KM * 1000
 LOOKBACK_YEARS = 50
+# The layer caps responses at 1,000 rows; a 500 km / 50-year query near the Gulf or
+# Florida returns ~3,000 track segments, so fetch every page.
+IBTRACS_PAGE_SIZE = 1000
+IBTRACS_MAX_PAGES = 10
+IBTRACS_OUT_FIELDS = "OBJECTID,SID,NAME,year,USA_WIND,LAT,LON,Hurricane_Date"
+# Radius for counting direct passes (NOAA hurricane return periods use ~50 nmi / 93 km).
+PASS_RADIUS_KM = 100.0
+HURRICANE_WIND_KT = 64
+MAJOR_HURRICANE_WIND_KT = 96
 
 
 class HurricaneData(BaseModel):
@@ -35,6 +46,69 @@ class HurricaneData(BaseModel):
             "category_5": 0,
         }
     )
+    # Distinct storms whose track came within PASS_RADIUS_KM, by intensity while that close.
+    tropical_systems_100km: int = 0
+    hurricane_passes_100km: int = 0
+    major_hurricane_passes_100km: int = 0
+
+
+def _distance_to_segment_km(
+    latitude: float,
+    longitude: float,
+    start: Tuple[float, float],
+    end: Tuple[float, float],
+) -> float:
+    """Distance from a point to a great-circle-ish segment using a local flat projection."""
+    km_per_deg_lat = 111.0
+    km_per_deg_lon = 111.0 * math.cos(math.radians(latitude))
+
+    def project(point: Tuple[float, float]) -> Tuple[float, float]:
+        lon_delta = (point[1] - longitude + 180.0) % 360.0 - 180.0
+        return lon_delta * km_per_deg_lon, (point[0] - latitude) * km_per_deg_lat
+
+    (x1, y1), (x2, y2) = project(start), project(end)
+    dx, dy = x2 - x1, y2 - y1
+    length_sq = dx * dx + dy * dy
+    if length_sq == 0:
+        return math.hypot(x1, y1)
+    t = max(0.0, min(1.0, -(x1 * dx + y1 * dy) / length_sq))
+    return math.hypot(x1 + t * dx, y1 + t * dy)
+
+
+def count_close_passes(features: List[dict], latitude: float, longitude: float) -> Tuple[int, int, int]:
+    """Return (tropical systems, hurricane-strength passes, major passes) within PASS_RADIUS_KM."""
+    tracks: Dict[str, List[dict]] = {}
+    for feature in features:
+        attributes = feature.get("attributes", {})
+        if attributes.get("LAT") is None or attributes.get("LON") is None:
+            continue
+        storm_id = attributes.get("SID") or attributes.get("NAME")
+        if storm_id:
+            tracks.setdefault(storm_id, []).append(attributes)
+
+    systems = hurricanes = majors = 0
+    for points in tracks.values():
+        points.sort(key=lambda point: (point.get("Hurricane_Date") or 0, point.get("OBJECTID") or 0))
+        close_wind: Optional[float] = None
+        pairs = list(zip(points, points[1:])) or [(points[0], points[0])]
+        for start, end in pairs:
+            distance = _distance_to_segment_km(
+                latitude,
+                longitude,
+                (float(start["LAT"]), float(start["LON"])),
+                (float(end["LAT"]), float(end["LON"])),
+            )
+            if distance <= PASS_RADIUS_KM:
+                winds = [float(w) for w in (start.get("USA_WIND"), end.get("USA_WIND")) if w is not None]
+                close_wind = max([close_wind or 0.0, *winds])
+        if close_wind is None:
+            continue
+        systems += 1
+        if close_wind >= HURRICANE_WIND_KT:
+            hurricanes += 1
+        if close_wind >= MAJOR_HURRICANE_WIND_KT:
+            majors += 1
+    return systems, hurricanes, majors
 
 
 def _wind_to_category(wind_knots: Optional[float]) -> Optional[int]:
@@ -69,18 +143,39 @@ def _parse_storm_year(attributes: dict) -> Optional[int]:
 
 async def _fetch_hurricane_live(latitude: float, longitude: float) -> HurricaneData:
     cutoff_year = datetime.utcnow().year - LOOKBACK_YEARS
-    where = f"SEASON >= {cutoff_year}"
+    # The layer's season field is lowercase `year`; `SEASON` makes ArcGIS reject the query.
+    where = f"year >= {cutoff_year}"
     async with httpx.AsyncClient(timeout=ARCGIS_TIMEOUT) as client:
-        data = await query_arcgis_point(
-            client,
-            IBTRACS_QUERY_URL,
-            latitude,
-            longitude,
-            out_fields="SID,NAME,SEASON,USA_WIND,LAT,LON",
-            where=where,
-            distance=SEARCH_RADIUS_M,
+
+        async def query(extra_params: dict) -> dict:
+            return await query_arcgis_point(
+                client,
+                IBTRACS_QUERY_URL,
+                latitude,
+                longitude,
+                out_fields=IBTRACS_OUT_FIELDS,
+                where=where,
+                distance=SEARCH_RADIUS_M,
+                result_record_count=IBTRACS_PAGE_SIZE,
+                extra_params=extra_params,
+            )
+
+        count = int((await query({"returnCountOnly": "true"})).get("count", 0))
+        pages = math.ceil(count / IBTRACS_PAGE_SIZE)
+        if pages > IBTRACS_MAX_PAGES:
+            raise RuntimeError(f"IBTrACS returned {count} track segments; too many to page")
+
+        responses = await asyncio.gather(
+            *(
+                query({"orderByFields": "OBJECTID", "resultOffset": page * IBTRACS_PAGE_SIZE})
+                for page in range(pages)
+            )
         )
-    return parse_hurricane_response(data, latitude, longitude, cutoff_year)
+
+    features = [feature for response in responses for feature in response.get("features", [])]
+    if len(features) < count:
+        raise RuntimeError(f"IBTrACS returned {len(features)} of {count} track segments")
+    return parse_hurricane_response({"features": features}, latitude, longitude, cutoff_year)
 
 
 async def get_hurricane_data(latitude: float, longitude: float) -> SourceResult[HurricaneData]:
@@ -148,8 +243,18 @@ def parse_hurricane_response(
     if nearest_distance_km == 999.0:
         nearest_distance_km = float(SEARCH_RADIUS_KM)
 
+    in_window = [
+        feature
+        for feature in features
+        if (_parse_storm_year(feature.get("attributes", {})) or cutoff_year) >= cutoff_year
+    ]
+    systems, hurricanes, majors = count_close_passes(in_window, latitude, longitude)
+
     return HurricaneData(
         historical_storm_count=len(storms_by_id),
         nearest_track_distance_km=round(nearest_distance_km, 2),
         category_distribution=category_distribution,
+        tropical_systems_100km=systems,
+        hurricane_passes_100km=hurricanes,
+        major_hurricane_passes_100km=majors,
     )

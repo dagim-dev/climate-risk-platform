@@ -23,6 +23,7 @@ test.describe("Risk dashboard hazard states", () => {
           ...mockReport,
           address,
           overall_status: "partial",
+          verdict: null,
           flood_risk: {
             status: "unavailable",
             score: null,
@@ -41,5 +42,8 @@ test.describe("Risk dashboard hazard states", () => {
 
     await expect(page.getByText("Data unavailable — cannot assess risk")).toBeVisible();
     await expect(page.getByText("FEMA timeout")).toBeVisible();
+    await expect(page.getByText("Verdict withheld")).toBeVisible();
+    await expect(page.getByText(/Flood data could not be retrieved/)).toBeVisible();
+    await expect(page.getByText(/^(Go|Caution|Avoid)$/)).toHaveCount(0);
   });
 });

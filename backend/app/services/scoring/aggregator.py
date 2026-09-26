@@ -71,7 +71,7 @@ async def build_risk_report(coordinates: Coordinates) -> ClimateRiskReport:
         wildfire_risk=wildfire_risk,
         overall_risk_score=overall_risk_score,
         overall_status=overall_status,
-        verdict=score_to_verdict(overall_risk_score),
+        verdict=score_to_verdict(overall_risk_score) if overall_status == "complete" else None,
         sources={
             "fema_nfhl": source_status_from_result(flood_result),
             "ibtracs": source_status_from_result(hurricane_result),

@@ -6,8 +6,9 @@
 > to every user at no cost. Anonymous analysis is unlimited.
 >
 > **Data honesty:** NASA is not queried. Historical trend points are interpolated
-> from the current score. WUI and fire-weather labels are inferred from fire
-> count and lat/lng. PDFs are stored on local disk.
+> from the current score. Wildfire uses USFS Wildfire Hazard Potential plus NIFC
+> perimeters. No verdict is given unless all four hazards were assessed. PDFs are
+> stored on local disk.
 
 > **Workflow Rules (Read Before Starting)**
 >

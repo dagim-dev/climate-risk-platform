@@ -14,9 +14,12 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
 
 SOURCE_FEMA = "fema_nfhl"
-SOURCE_IBTRACS = "ibtracs"
-SOURCE_WFIGS = "wfigs"
-SOURCE_NOAA_HEAT = "noaa_heat"
+# Bumped after fixing the IBTrACS query; older rows were parsed from an error body.
+SOURCE_IBTRACS = "ibtracs_v2"
+# Bumped when WildfireData gained USFS WHP shares so older cache rows are not reused.
+SOURCE_WFIGS = "wfigs_whp"
+# Bumped when heat switched from GHCND days >= 95°F to GSOY DX90 (days >= 90°F).
+SOURCE_NOAA_HEAT = "noaa_heat_dx90"
 
 STALE_TTL = {
     SOURCE_FEMA: timedelta(days=30),
@@ -98,12 +101,13 @@ async def fetch_with_cache(
         )
         return SourceResult(status="ok", data=data, as_of=_iso(fetched_at), error=None)
     except Exception as exc:
+        error = str(exc) or type(exc).__name__
         logger.warning(
             "Live fetch failed for source=%s at (%s, %s): %s",
             source,
             latitude,
             longitude,
-            exc,
+            error,
         )
         cached = await get_cached_payload(source, latitude, longitude)
         if cached is not None:
@@ -114,11 +118,11 @@ async def fetch_with_cache(
                     status="stale",
                     data=model_type.model_validate(payload),
                     as_of=_iso(fetched_at),
-                    error=str(exc),
+                    error=error,
                 )
         return SourceResult(
             status="unavailable",
             data=None,
             as_of=None,
-            error=str(exc),
+            error=error,
         )
