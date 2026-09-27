@@ -35,8 +35,16 @@ export const mockReport: ClimateRiskReport = {
   overall_risk_score: 67,
   overall_status: "complete",
   verdict: "Caution",
+  verdict_reason: null,
   ai_summary: "This property faces elevated flood and hurricane exposure.",
   generated_at: "2026-08-24T10:00:00.000Z",
+  // Same shape as the backend: today's scores, then projections.
+  historical_trend: [
+    { year: 2026, flood_score: 72, hurricane_score: 85, heat_score: 68, wildfire_score: 22, is_projection: false },
+    { year: 2030, flood_score: 73, hurricane_score: 87, heat_score: 71, wildfire_score: 22, is_projection: true },
+    { year: 2040, flood_score: 76, hurricane_score: 91, heat_score: 78, wildfire_score: 23, is_projection: true },
+    { year: 2050, flood_score: 79, hurricane_score: 95, heat_score: 85, wildfire_score: 25, is_projection: true },
+  ],
 };
 
 export async function mockAnalyzeApi(page: import("@playwright/test").Page) {

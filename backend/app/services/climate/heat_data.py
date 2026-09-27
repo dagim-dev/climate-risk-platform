@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 import httpx
@@ -26,6 +26,14 @@ LOOKBACK_YEARS = 30
 TREND_THRESHOLD_DAYS_PER_DECADE = 3.0
 STATION_SEARCH_DEGREES = 0.5
 MIN_STATION_COVERAGE = 0.7
+# First-order NWS/ASOS stations (GHCND ids "USW…") have the most consistent long records;
+# co-op stations can shift with siting/instrument changes, which distorts the trend.
+FIRST_ORDER_STATION_PREFIX = "GHCND:USW"
+FIRST_ORDER_MAX_DISTANCE_KM = 50.0
+# ...but only at a similar elevation to the property, estimated from the nearest station of
+# any record length: a valley airport is not representative of a ridge-top town (Oroville
+# vs Paradise, CA), nor a rainforest valley gauge of downtown Honolulu.
+FIRST_ORDER_MAX_ELEVATION_DIFF_M = 100.0
 HEAT_FETCH_DEADLINE_SECONDS = 8.0
 MIN_YEARS_OF_HEAT_DATA = 10
 # NOAA CDO allows 5 requests/second per token; back off once on 429.
@@ -38,17 +46,26 @@ class HeatRiskData(BaseModel):
     trend_direction: str = "stable"
     # Least-squares change in hot days per year, per decade, over the observed record.
     hot_days_trend_per_decade: float = 0.0
+    # Observed record the numbers above are computed from (None on older cache rows).
+    first_year: Optional[int] = None
+    last_year: Optional[int] = None
+    years_observed: Optional[int] = None
 
 
-def hot_days_trend_per_decade(values: List[float]) -> float:
-    """Ordinary least-squares slope of yearly hot-day counts, expressed per decade."""
+def hot_days_trend_per_decade(values: List[float], years: Optional[List[int]] = None) -> float:
+    """Ordinary least-squares slope of yearly hot-day counts, expressed per decade.
+
+    ``years`` gives the x value of each count so gaps in the record don't compress time;
+    without it the counts are assumed to be consecutive years.
+    """
     n = len(values)
     if n < 2:
         return 0.0
-    mean_x = (n - 1) / 2
+    xs = [float(year) for year in years] if years is not None else [float(i) for i in range(n)]
+    mean_x = sum(xs) / n
     mean_y = sum(values) / n
-    covariance = sum((index - mean_x) * (value - mean_y) for index, value in enumerate(values))
-    variance = sum((index - mean_x) ** 2 for index in range(n))
+    covariance = sum((x - mean_x) * (value - mean_y) for x, value in zip(xs, values))
+    variance = sum((x - mean_x) ** 2 for x in xs)
     return round(covariance / variance * 10, 2) if variance else 0.0
 
 
@@ -74,7 +91,12 @@ def select_station(
     start_year: int,
     current_year: int,
 ) -> Optional[dict]:
-    """Nearest station whose GSOY record spans most of the lookback window."""
+    """Station whose GSOY record spans most of the lookback window.
+
+    Prefers the nearest first-order station within FIRST_ORDER_MAX_DISTANCE_KM whose
+    elevation is close to the property's (estimated from the nearest station of any kind);
+    otherwise the nearest qualifying station.
+    """
 
     def has_long_record(station: dict) -> bool:
         min_year = _year_of(station.get("mindate"))
@@ -87,15 +109,49 @@ def select_station(
             and float(station.get("datacoverage") or 0) >= MIN_STATION_COVERAGE
         )
 
-    candidates = [station for station in stations if has_long_record(station)]
+    candidates = [
+        station
+        for station in stations
+        if station.get("id")
+        and station.get("latitude") is not None
+        and station.get("longitude") is not None
+        and has_long_record(station)
+    ]
     if not candidates:
         return None
-    return min(
-        candidates,
-        key=lambda station: haversine_km(
-            latitude, longitude, station["latitude"], station["longitude"]
-        ),
-    )
+
+    def distance(station: dict) -> float:
+        return haversine_km(
+            latitude,
+            longitude,
+            float(station.get("latitude") or 0.0),
+            float(station.get("longitude") or 0.0),
+        )
+
+    def elevation(station: dict) -> Optional[float]:
+        try:
+            return float(station["elevation"])
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    located = [
+        station
+        for station in stations
+        if station.get("latitude") is not None
+        and station.get("longitude") is not None
+        and elevation(station) is not None
+    ]
+    local_elevation = elevation(min(located, key=distance)) if located else None
+    first_order = [
+        station
+        for station in candidates
+        if str(station["id"]).startswith(FIRST_ORDER_STATION_PREFIX)
+        and distance(station) <= FIRST_ORDER_MAX_DISTANCE_KM
+        and local_elevation is not None
+        and elevation(station) is not None
+        and abs(elevation(station) - local_elevation) <= FIRST_ORDER_MAX_ELEVATION_DIFF_M
+    ]
+    return min(first_order or candidates, key=distance)
 
 
 async def _noaa_get(client: httpx.AsyncClient, path: str, params: dict) -> dict:
@@ -145,7 +201,10 @@ def parse_annual_hot_days(results: list) -> dict[int, float]:
         value = record.get("value")
         if year is None or value is None or record.get("datatype") != HOT_DAYS_DATATYPE:
             continue
-        by_year[year] = float(value)
+        try:
+            by_year[year] = float(value)
+        except (TypeError, ValueError):
+            continue
     return by_year
 
 
@@ -154,8 +213,8 @@ async def _fetch_annual_hot_days(
     station_id: str,
     start_year: int,
     end_year: int,
-) -> List[float]:
-    """Yearly hot-day counts in year order. CDO caps GSOY requests at 10 years each."""
+) -> dict[int, float]:
+    """Year -> hot-day count. CDO caps GSOY requests at 10 years each."""
     by_year: dict[int, float] = {}
     for chunk_start in range(start_year, end_year + 1, GSOY_MAX_YEARS_PER_REQUEST):
         chunk_end = min(chunk_start + GSOY_MAX_YEARS_PER_REQUEST - 1, end_year)
@@ -172,14 +231,14 @@ async def _fetch_annual_hot_days(
             },
         )
         by_year.update(parse_annual_hot_days(data.get("results", [])))
-    return [by_year[year] for year in sorted(by_year)]
+    return by_year
 
 
 async def _fetch_heat_risk_live(latitude: float, longitude: float) -> HeatRiskData:
     if not settings.NOAA_API_KEY:
         raise RuntimeError("NOAA_API_KEY is not configured")
 
-    current_year = datetime.utcnow().year
+    current_year = datetime.now(timezone.utc).year
     start_year = current_year - LOOKBACK_YEARS
 
     async with httpx.AsyncClient(timeout=NOAA_REQUEST_TIMEOUT) as client:
@@ -187,22 +246,27 @@ async def _fetch_heat_risk_live(latitude: float, longitude: float) -> HeatRiskDa
         if station is None:
             raise RuntimeError("No NOAA weather station with a long temperature record nearby")
 
-        yearly_counts = await asyncio.wait_for(
-            _fetch_annual_hot_days(client, station["id"], start_year, current_year - 1),
+        counts_by_year = await asyncio.wait_for(
+            _fetch_annual_hot_days(client, str(station["id"]), start_year, current_year - 1),
             timeout=HEAT_FETCH_DEADLINE_SECONDS,
         )
 
+    years = sorted(counts_by_year)
+    yearly_counts = [counts_by_year[year] for year in years]
     if len(yearly_counts) < MIN_YEARS_OF_HEAT_DATA:
         raise RuntimeError(
             f"NOAA returned only {len(yearly_counts)} years of heat observations "
             f"(need {MIN_YEARS_OF_HEAT_DATA})"
         )
 
-    slope = hot_days_trend_per_decade(yearly_counts)
+    slope = hot_days_trend_per_decade(yearly_counts, years)
     return HeatRiskData(
         extreme_heat_days_per_year=round(sum(yearly_counts) / len(yearly_counts), 2),
         trend_direction=trend_direction_from_slope(slope),
         hot_days_trend_per_decade=slope,
+        first_year=years[0],
+        last_year=years[-1],
+        years_observed=len(years),
     )
 
 

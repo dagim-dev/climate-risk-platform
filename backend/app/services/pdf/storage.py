@@ -26,3 +26,7 @@ def load_pdf(property_id: int) -> bytes | None:
     if not path.exists():
         return None
     return path.read_bytes()
+
+
+def delete_pdf(property_id: int) -> None:
+    pdf_file_path(property_id).unlink(missing_ok=True)

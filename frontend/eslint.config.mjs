@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Build output written here by older dev runs (before turbopack.root was pinned).
+    "frontend/**",
+    "test-results/**",
+    "playwright-report/**",
   ]),
 ]);
 

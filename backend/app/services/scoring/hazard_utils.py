@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 from typing import Callable, Optional, Tuple
 
 from app.schemas.risk import HazardScore, OverallStatus, SourceStatus
 from app.services.climate.source_result import SourceResult
 from app.services.scoring.helpers import clamp_score
+
+logger = logging.getLogger(__name__)
 
 
 def unavailable_hazard(reason: str) -> HazardScore:
@@ -27,7 +30,11 @@ def score_hazard_from_source(
     if result.status == "unavailable" or result.data is None:
         return unavailable_hazard(result.error or "Data source unavailable")
 
-    hazard = scorer(result.data, latitude, longitude)
+    try:
+        hazard = scorer(result.data, latitude, longitude)
+    except Exception:
+        logger.exception("Scorer %s failed", getattr(scorer, "__name__", scorer))
+        return unavailable_hazard("Could not score the data returned by the provider")
     hazard.status = result.status
     hazard.as_of = result.as_of
     return hazard

@@ -21,18 +21,25 @@ def create_access_token(subject: str, expires_delta: timedelta | None = None) ->
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
     )
-    payload: dict[str, Any] = {"sub": subject, "exp": expire}
+    payload: dict[str, Any] = {"sub": subject, "exp": expire, "type": "access"}
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
 
-def decode_access_token(token: str) -> str | None:
+def decode_access_token(token: str) -> int | None:
+    """Return the user id from an access token, or None if it is invalid.
+
+    Tokens issued before the ``type`` claim was added are still accepted; PDF download
+    tokens (signed with the same key) are not.
+    """
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
-        subject = payload.get("sub")
-        if subject is None:
-            return None
-        return str(subject)
     except JWTError:
+        return None
+    if payload.get("type", "access") != "access":
+        return None
+    try:
+        return int(payload.get("sub"))
+    except (TypeError, ValueError):
         return None
 
 

@@ -79,7 +79,9 @@ def test_miami_beach_flood_and_hurricane_scores():
     )
 
     assert flood.score >= 70
-    assert hurricane.score >= 65
+    # Live IBTrACS counts for Miami Beach (2026): scored from track history alone.
+    assert hurricane.score == 62
+    assert hurricane.severity == "High"
     assert "6 hurricane-strength storms passed within 100 km" in hurricane.primary_factors[0]
 
 

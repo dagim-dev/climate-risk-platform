@@ -1,15 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { VerdictBadge, unavailableHazardNames } from "@/components/dashboard/VerdictBadge";
 import { RiskTrendChart } from "@/components/dashboard/RiskTrendChart";
-import {
-  loadReportFromSession,
-  loadReportFromUrlParam,
-} from "@/lib/report-storage";
-import { severityTextClass } from "@/lib/risk-styles";
+import { requestDashboardRestore, useStoredReport } from "@/lib/report-storage";
+import { severityFromScore, severityTextClass } from "@/lib/risk-styles";
 import type { Severity } from "@/types/risk";
 
 function formatDate(iso: string): string {
@@ -49,8 +44,8 @@ function ReportScoreRow({
     );
   }
 
-  const severity = (data.severity ?? "Moderate") as Severity;
   const clampedScore = Math.max(0, Math.min(100, data.score));
+  const severity: Severity = data.severity ?? severityFromScore(clampedScore);
 
   return (
     <div className="report-section rounded-lg border border-zinc-200 p-4">
@@ -74,18 +69,7 @@ function ReportScoreRow({
 }
 
 export function ReportPageContent() {
-  const searchParams = useSearchParams();
-  const report = useMemo(() => {
-    const fromUrl = searchParams.get("report");
-    if (fromUrl) {
-      const parsed = loadReportFromUrlParam(fromUrl);
-      if (parsed) {
-        return parsed;
-      }
-    }
-
-    return loadReportFromSession();
-  }, [searchParams]);
+  const report = useStoredReport();
 
   if (!report) {
     return (
@@ -124,6 +108,7 @@ export function ReportPageContent() {
         </button>
         <Link
           href="/"
+          onClick={requestDashboardRestore}
           className="inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
         >
           Back to Dashboard

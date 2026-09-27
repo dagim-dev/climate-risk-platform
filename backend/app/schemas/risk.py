@@ -4,12 +4,14 @@ from pydantic import BaseModel, Field
 
 HazardStatus = Literal["ok", "stale", "unavailable"]
 OverallStatus = Literal["complete", "partial", "unavailable"]
+Severity = Literal["Low", "Moderate", "High", "Extreme"]
+Verdict = Literal["Go", "Caution", "Avoid"]
 
 
 class HazardScore(BaseModel):
     status: HazardStatus = "ok"
     score: Optional[int] = Field(default=None, ge=0, le=100)
-    severity: Optional[str] = None
+    severity: Optional[Severity] = None
     confidence: str = "Medium"
     primary_factors: List[str] = Field(default_factory=list)
     as_of: Optional[str] = None
@@ -24,10 +26,11 @@ class SourceStatus(BaseModel):
 
 class TrendPoint(BaseModel):
     year: int
-    flood_score: int = Field(..., ge=0, le=100)
-    hurricane_score: int = Field(..., ge=0, le=100)
-    heat_score: int = Field(..., ge=0, le=100)
-    wildfire_score: int = Field(..., ge=0, le=100)
+    # None when that hazard could not be assessed (nothing to project from).
+    flood_score: Optional[int] = Field(None, ge=0, le=100)
+    hurricane_score: Optional[int] = Field(None, ge=0, le=100)
+    heat_score: Optional[int] = Field(None, ge=0, le=100)
+    wildfire_score: Optional[int] = Field(None, ge=0, le=100)
     is_projection: bool = False
 
 
@@ -41,7 +44,7 @@ class ClimateRiskReport(BaseModel):
     wildfire_risk: HazardScore
     overall_risk_score: Optional[int] = Field(default=None, ge=0, le=100)
     overall_status: OverallStatus = "complete"
-    verdict: Optional[str] = None
+    verdict: Optional[Verdict] = None
     verdict_reason: Optional[str] = None
     sources: Dict[str, SourceStatus] = Field(default_factory=dict)
     ai_summary: Optional[str] = None

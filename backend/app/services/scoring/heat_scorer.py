@@ -35,7 +35,12 @@ def score_heat_risk(
     if trend > 0:
         score += min(MAX_TREND_BONUS, trend * TREND_POINTS_PER_DAY_PER_DECADE)
     if heat_data.trend_direction == "increasing":
-        factors.append(f"Hot days rising by about {trend:.0f} per decade over the last 30 years (NOAA)")
+        span = (
+            f"{heat_data.first_year}–{heat_data.last_year}"
+            if heat_data.first_year and heat_data.last_year
+            else "the observed record"
+        )
+        factors.append(f"Hot days rising by about {trend:.0f} per decade over {span} (NOAA)")
 
     if extreme_days > 0:
         confidence = "High" if extreme_days >= 30 else "Medium"

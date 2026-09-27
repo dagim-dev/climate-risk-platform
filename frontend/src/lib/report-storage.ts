@@ -1,25 +1,64 @@
+import { useMemo, useSyncExternalStore } from "react";
 import type { ClimateRiskReport } from "@/types/risk";
 
 export const REPORT_STORAGE_KEY = "climate-risk-report";
+const RESTORE_FLAG_KEY = "climate-risk-restore-dashboard";
 
 export function saveReport(report: ClimateRiskReport): void {
-  sessionStorage.setItem(REPORT_STORAGE_KEY, JSON.stringify(report));
+  try {
+    sessionStorage.setItem(REPORT_STORAGE_KEY, JSON.stringify(report));
+  } catch {
+    // Storage full or blocked (private mode): the report page will show its empty state.
+  }
 }
 
-export function loadReportFromSession(): ClimateRiskReport | null {
+function readStoredReport(): string | null {
   try {
-    const raw = sessionStorage.getItem(REPORT_STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as ClimateRiskReport;
+    return sessionStorage.getItem(REPORT_STORAGE_KEY);
   } catch {
     return null;
   }
 }
 
-export function loadReportFromUrlParam(encoded: string): ClimateRiskReport | null {
+const noSubscription = () => () => {};
+
+/**
+ * The last analyzed report saved in this tab. Rendered as null on the server and during
+ * hydration, then read from sessionStorage, so server and client markup always match.
+ */
+export function useStoredReport(): ClimateRiskReport | null {
+  const raw = useSyncExternalStore(noSubscription, readStoredReport, () => null);
+  return useMemo(() => {
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as ClimateRiskReport;
+    } catch {
+      return null;
+    }
+  }, [raw]);
+}
+
+/** Ask the home page to reopen the stored report (set by "Back to Dashboard"). */
+export function requestDashboardRestore(): void {
   try {
-    return JSON.parse(decodeURIComponent(atob(encoded))) as ClimateRiskReport;
+    sessionStorage.setItem(RESTORE_FLAG_KEY, "1");
   } catch {
-    return null;
+    // ignore: the home page just opens empty
+  }
+}
+
+export function isDashboardRestoreRequested(): boolean {
+  try {
+    return sessionStorage.getItem(RESTORE_FLAG_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function clearDashboardRestore(): void {
+  try {
+    sessionStorage.removeItem(RESTORE_FLAG_KEY);
+  } catch {
+    // ignore
   }
 }

@@ -37,8 +37,15 @@ export default function SignUpPage() {
       });
 
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { detail?: string } | null;
-        setError(body?.detail ?? "Registration failed.");
+        const body = (await response.json().catch(() => null)) as { detail?: unknown } | null;
+        // FastAPI validation errors (422) return a list, not a string.
+        setError(
+          typeof body?.detail === "string"
+            ? body.detail
+            : response.status === 422
+              ? "Please enter a valid email and a password of at least 8 characters."
+              : "Registration failed.",
+        );
         setLoading(false);
         return;
       }
@@ -68,7 +75,7 @@ export default function SignUpPage() {
     <div className="mx-auto w-full max-w-md px-4 py-16 sm:px-6">
       <h1 className="text-3xl font-bold text-brand-primary">Create Account</h1>
       <p className="mt-2 text-sm text-zinc-600">
-        Sign up for unlimited analyses, full reports, and saved properties.
+        Analysis is free for everyone. Create an account to save properties and download PDF reports.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">

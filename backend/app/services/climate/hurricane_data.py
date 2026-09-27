@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
 import httpx
@@ -75,12 +75,27 @@ def _distance_to_segment_km(
     return math.hypot(x1 + t * dx, y1 + t * dy)
 
 
+def _to_float(value: object) -> Optional[float]:
+    """Parse a numeric attribute; blank strings and junk become None instead of raising."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        number = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
+
+def _sort_key(point: dict) -> Tuple[float, float]:
+    return (_to_float(point.get("Hurricane_Date")) or 0.0, _to_float(point.get("OBJECTID")) or 0.0)
+
+
 def count_close_passes(features: List[dict], latitude: float, longitude: float) -> Tuple[int, int, int]:
     """Return (tropical systems, hurricane-strength passes, major passes) within PASS_RADIUS_KM."""
     tracks: Dict[str, List[dict]] = {}
     for feature in features:
-        attributes = feature.get("attributes", {})
-        if attributes.get("LAT") is None or attributes.get("LON") is None:
+        attributes = feature.get("attributes") or {}
+        if _to_float(attributes.get("LAT")) is None or _to_float(attributes.get("LON")) is None:
             continue
         storm_id = attributes.get("SID") or attributes.get("NAME")
         if storm_id:
@@ -88,18 +103,22 @@ def count_close_passes(features: List[dict], latitude: float, longitude: float) 
 
     systems = hurricanes = majors = 0
     for points in tracks.values():
-        points.sort(key=lambda point: (point.get("Hurricane_Date") or 0, point.get("OBJECTID") or 0))
+        points.sort(key=_sort_key)
         close_wind: Optional[float] = None
         pairs = list(zip(points, points[1:])) or [(points[0], points[0])]
         for start, end in pairs:
             distance = _distance_to_segment_km(
                 latitude,
                 longitude,
-                (float(start["LAT"]), float(start["LON"])),
-                (float(end["LAT"]), float(end["LON"])),
+                (_to_float(start["LAT"]), _to_float(start["LON"])),
+                (_to_float(end["LAT"]), _to_float(end["LON"])),
             )
             if distance <= PASS_RADIUS_KM:
-                winds = [float(w) for w in (start.get("USA_WIND"), end.get("USA_WIND")) if w is not None]
+                winds = [
+                    w
+                    for w in (_to_float(start.get("USA_WIND")), _to_float(end.get("USA_WIND")))
+                    if w is not None
+                ]
                 close_wind = max([close_wind or 0.0, *winds])
         if close_wind is None:
             continue
@@ -142,7 +161,7 @@ def _parse_storm_year(attributes: dict) -> Optional[int]:
 
 
 async def _fetch_hurricane_live(latitude: float, longitude: float) -> HurricaneData:
-    cutoff_year = datetime.utcnow().year - LOOKBACK_YEARS
+    cutoff_year = datetime.now(timezone.utc).year - LOOKBACK_YEARS
     # The layer's season field is lowercase `year`; `SEASON` makes ArcGIS reject the query.
     where = f"year >= {cutoff_year}"
     async with httpx.AsyncClient(timeout=ARCGIS_TIMEOUT) as client:
@@ -198,60 +217,49 @@ def parse_hurricane_response(
     if not features:
         return HurricaneData()
 
-    storms_by_id: dict[str, dict] = {}
-    category_distribution = {
-        "category_1": 0,
-        "category_2": 0,
-        "category_3": 0,
-        "category_4": 0,
-        "category_5": 0,
-    }
-    nearest_distance_km = 999.0
+    # Peak wind per storm anywhere within the search radius. Tracked separately so the
+    # feature attributes (reused by count_close_passes) keep each segment's own wind.
+    peak_wind_by_storm: dict[str, Optional[float]] = {}
+    nearest_distance_km: Optional[float] = None
 
     for feature in features:
-        attributes = feature.get("attributes", {})
+        attributes = feature.get("attributes") or {}
         storm_year = _parse_storm_year(attributes)
         if storm_year is not None and storm_year < cutoff_year:
             continue
 
         storm_id = attributes.get("SID") or attributes.get("NAME") or str(id(feature))
-        existing = storms_by_id.get(storm_id)
-        wind = attributes.get("USA_WIND")
-        category = _wind_to_category(float(wind) if wind is not None else None)
+        wind = _to_float(attributes.get("USA_WIND"))
+        prior = peak_wind_by_storm.get(storm_id)
+        peak_wind_by_storm[storm_id] = wind if prior is None else max(prior, wind or prior)
 
-        if existing is None:
-            storms_by_id[storm_id] = attributes
-            if category is not None:
-                category_distribution[f"category_{category}"] += 1
-        elif category is not None:
-            prior_wind = existing.get("USA_WIND")
-            prior_category = _wind_to_category(
-                float(prior_wind) if prior_wind is not None else None
-            )
-            if prior_category is None or category > prior_category:
-                if prior_category is not None:
-                    category_distribution[f"category_{prior_category}"] -= 1
-                category_distribution[f"category_{category}"] += 1
-                existing["USA_WIND"] = wind
-
-        storm_lat = attributes.get("LAT")
-        storm_lon = attributes.get("LON")
+        storm_lat = _to_float(attributes.get("LAT"))
+        storm_lon = _to_float(attributes.get("LON"))
         if storm_lat is not None and storm_lon is not None:
-            distance_km = haversine_km(latitude, longitude, float(storm_lat), float(storm_lon))
-            nearest_distance_km = min(nearest_distance_km, distance_km)
+            distance_km = haversine_km(latitude, longitude, storm_lat, storm_lon)
+            nearest_distance_km = (
+                distance_km if nearest_distance_km is None else min(nearest_distance_km, distance_km)
+            )
 
-    if nearest_distance_km == 999.0:
+    category_distribution = {f"category_{n}": 0 for n in range(1, 6)}
+    for peak_wind in peak_wind_by_storm.values():
+        category = _wind_to_category(peak_wind)
+        if category is not None:
+            category_distribution[f"category_{category}"] += 1
+
+    if nearest_distance_km is None:
+        # No usable coordinates: every returned segment was inside the search radius.
         nearest_distance_km = float(SEARCH_RADIUS_KM)
 
     in_window = [
         feature
         for feature in features
-        if (_parse_storm_year(feature.get("attributes", {})) or cutoff_year) >= cutoff_year
+        if (_parse_storm_year(feature.get("attributes") or {}) or cutoff_year) >= cutoff_year
     ]
     systems, hurricanes, majors = count_close_passes(in_window, latitude, longitude)
 
     return HurricaneData(
-        historical_storm_count=len(storms_by_id),
+        historical_storm_count=len(peak_wind_by_storm),
         nearest_track_distance_km=round(nearest_distance_km, 2),
         category_distribution=category_distribution,
         tropical_systems_100km=systems,

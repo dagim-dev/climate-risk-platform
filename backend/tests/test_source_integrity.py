@@ -105,7 +105,7 @@ async def test_fetch_with_cache_error_is_never_empty():
         result = await fetch_with_cache(SOURCE_FEMA, 25.0, -80.0, failing_fetcher, FloodZoneData)
 
     assert result.status == "unavailable"
-    assert result.error == "ConnectError"
+    assert result.error == "Could not reach the data provider"
 
 
 VE_PAYLOAD = {"features": [{"attributes": {"FLD_ZONE": "VE", "SFHA_TF": "T", "STATIC_BFE": 9}}]}
@@ -240,3 +240,83 @@ async def test_arcgis_query_does_not_retry_read_timeouts():
     with pytest.raises(httpx.ReadTimeout):
         await query_arcgis_point(FakeClient(), "https://arcgis.test", 25.0, -80.0, out_fields="*")
     assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_cache_write_failure_still_returns_live_result():
+    async def fetcher():
+        return FloodZoneData(flood_zone="AE", base_flood_elevation=8.0, special_flood_hazard_area=True)
+
+    with patch(
+        "app.services.climate.source_cache.put_cached_payload",
+        new=AsyncMock(side_effect=RuntimeError("database is down")),
+    ):
+        result = await fetch_with_cache(SOURCE_FEMA, 25.0, -80.0, fetcher, FloodZoneData)
+
+    assert result.status == "ok"
+    assert result.data.flood_zone == "AE"
+
+
+@pytest.mark.asyncio
+async def test_cache_read_failure_on_fallback_is_unavailable_not_500():
+    async def failing_fetcher():
+        raise httpx.ReadTimeout("slow")
+
+    with patch(
+        "app.services.climate.source_cache.get_cached_payload",
+        new=AsyncMock(side_effect=RuntimeError("database is down")),
+    ):
+        result = await fetch_with_cache(SOURCE_FEMA, 25.0, -80.0, failing_fetcher, FloodZoneData)
+
+    assert result.status == "unavailable"
+    assert result.error == "The data provider did not respond in time"
+
+
+@pytest.mark.asyncio
+async def test_upstream_url_is_not_leaked_in_error():
+    request = httpx.Request("GET", "https://example.test/secret?token=abc")
+
+    async def failing_fetcher():
+        raise httpx.HTTPStatusError("boom", request=request, response=httpx.Response(503, request=request))
+
+    with patch(
+        "app.services.climate.source_cache.get_cached_payload",
+        new=AsyncMock(return_value=None),
+    ):
+        result = await fetch_with_cache(SOURCE_FEMA, 25.0, -80.0, failing_fetcher, FloodZoneData)
+
+    assert result.error == "The data provider returned HTTP 503"
+
+
+@pytest.mark.asyncio
+async def test_wildfire_keeps_whp_when_nifc_fails():
+    from app.services.climate.wildfire_data import _fetch_wildfire_live
+    from app.services.scoring.wildfire_scorer import score_wildfire_risk
+
+    with patch(
+        "app.services.climate.wildfire_data._fetch_whp_class_shares",
+        new=AsyncMock(return_value={4: 0.5, 6: 0.5}),
+    ), patch(
+        "app.services.climate.wildfire_data._fetch_fire_count",
+        new=AsyncMock(side_effect=httpx.ConnectError("")),
+    ):
+        data = await _fetch_wildfire_live(39.76, -121.62)
+
+    assert data.fire_count_20_years is None
+    hazard = score_wildfire_risk(data, 39.76, -121.62)
+    assert hazard.score is not None
+    assert hazard.confidence == "Medium"
+    assert any("NIFC" in factor for factor in hazard.primary_factors)
+
+
+@pytest.mark.asyncio
+async def test_flood_zone_d_does_not_fall_back_to_mirror():
+    from app.services.climate.flood_data import FloodZoneUndetermined
+
+    zone_d = {"features": [{"attributes": {"FLD_ZONE": "D", "SFHA_TF": "F"}}]}
+    query = AsyncMock(return_value=zone_d)
+    with patch("app.services.climate.flood_data._query_flood_zones", new=query):
+        with pytest.raises(FloodZoneUndetermined):
+            await _fetch_flood_zone_live(25.0, -80.0)
+
+    assert query.await_count == 1
