@@ -180,6 +180,36 @@ def test_select_station_prefers_nearest_long_record():
     assert select_station(stations[:1], 33.4484, -112.074, 1996, 2026) is None
 
 
+def test_select_station_prefers_first_order_station_nearby():
+    # Real Miami Beach case: a nearer co-op station with an inconsistent record vs
+    # Miami International (first-order) 19 km away.
+    stations = [
+        {"id": "GHCND:USC00081306", "latitude": 25.6667, "longitude": -80.1561, "elevation": 2.0, "mindate": "1997-01-01", "maxdate": "2026-01-01", "datacoverage": 0.83},
+        {"id": "GHCND:USW00012839", "latitude": 25.7881, "longitude": -80.3169, "elevation": 3.0, "mindate": "1948-01-01", "maxdate": "2026-01-01", "datacoverage": 0.99},
+    ]
+    assert select_station(stations, 25.7803, -80.1303, 1996, 2026)["id"] == "GHCND:USW00012839"
+
+    # Paradise, CA: the valley airport is far below the town (nearest gauge, short record).
+    ridge = [
+        {"id": "GHCND:USC00046685", "latitude": 25.7810, "longitude": -80.1310, "elevation": 533.0, "mindate": "1957-01-01", "maxdate": "2021-01-01", "datacoverage": 0.81},
+        {**stations[0], "elevation": 759.0},
+        {**stations[1], "elevation": 58.0},
+    ]
+    assert select_station(ridge, 25.7803, -80.1303, 1996, 2026)["id"] == "GHCND:USC00081306"
+
+    # Honolulu: nearest long record is a valley gauge at 152 m, but the town (and the
+    # airport) sit near sea level.
+    honolulu = [
+        {"id": "GHCND:USC00514617", "latitude": 25.7810, "longitude": -80.1310, "elevation": 15.0, "mindate": "1905-01-01", "maxdate": "1921-01-01", "datacoverage": 0.65},
+        {**stations[0], "elevation": 152.0},
+        {**stations[1], "elevation": 2.0},
+    ]
+    assert select_station(honolulu, 25.7803, -80.1303, 1996, 2026)["id"] == "GHCND:USW00012839"
+
+    far_first_order = [stations[0], {**stations[1], "latitude": 26.9, "longitude": -80.3}]
+    assert select_station(far_first_order, 25.7803, -80.1303, 1996, 2026)["id"] == "GHCND:USC00081306"
+
+
 def test_parse_whp_histogram_returns_class_shares():
     payload = {
         "histograms": [

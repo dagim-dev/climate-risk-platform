@@ -27,7 +27,8 @@ PROVIDER_FEMA = "FEMA NFHL"
 PROVIDER_FALLBACK = "FEMA NFHL via Esri Living Atlas"
 FLOOD_OUT_FIELDS = "FLD_ZONE,ZONE_SUBTY,SFHA_TF,STATIC_BFE"
 FEMA_TIMEOUT = httpx.Timeout(8.0, connect=3.0)
-FALLBACK_TIMEOUT = httpx.Timeout(6.0, connect=3.0)
+# Cold queries on the mirror have been observed to take 6s+ (e.g. Honolulu).
+FALLBACK_TIMEOUT = httpx.Timeout(10.0, connect=3.0)
 
 # NFHL stores "no base flood elevation" as -9999.
 BFE_MISSING_SENTINEL = -9000.0

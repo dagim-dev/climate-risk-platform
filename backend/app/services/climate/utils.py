@@ -6,7 +6,8 @@ from typing import Any, Dict, Optional
 import httpx
 
 ARCGIS_HEADERS = {"User-Agent": "climate-risk-platform/0.2-alpha"}
-ARCGIS_TIMEOUT = httpx.Timeout(4.0, connect=2.0)
+# ArcGIS Online feature services occasionally take several seconds on a cold query.
+ARCGIS_TIMEOUT = httpx.Timeout(8.0, connect=3.0)
 NOAA_REQUEST_TIMEOUT = httpx.Timeout(4.0, connect=2.0)
 
 

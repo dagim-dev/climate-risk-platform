@@ -26,6 +26,14 @@ LOOKBACK_YEARS = 30
 TREND_THRESHOLD_DAYS_PER_DECADE = 3.0
 STATION_SEARCH_DEGREES = 0.5
 MIN_STATION_COVERAGE = 0.7
+# First-order NWS/ASOS stations (GHCND ids "USW…") have the most consistent long records;
+# co-op stations can shift with siting/instrument changes, which distorts the trend.
+FIRST_ORDER_STATION_PREFIX = "GHCND:USW"
+FIRST_ORDER_MAX_DISTANCE_KM = 50.0
+# ...but only at a similar elevation to the property, estimated from the nearest station of
+# any record length: a valley airport is not representative of a ridge-top town (Oroville
+# vs Paradise, CA), nor a rainforest valley gauge of downtown Honolulu.
+FIRST_ORDER_MAX_ELEVATION_DIFF_M = 100.0
 HEAT_FETCH_DEADLINE_SECONDS = 8.0
 MIN_YEARS_OF_HEAT_DATA = 10
 # NOAA CDO allows 5 requests/second per token; back off once on 429.
@@ -83,7 +91,12 @@ def select_station(
     start_year: int,
     current_year: int,
 ) -> Optional[dict]:
-    """Nearest station whose GSOY record spans most of the lookback window."""
+    """Station whose GSOY record spans most of the lookback window.
+
+    Prefers the nearest first-order station within FIRST_ORDER_MAX_DISTANCE_KM whose
+    elevation is close to the property's (estimated from the nearest station of any kind);
+    otherwise the nearest qualifying station.
+    """
 
     def has_long_record(station: dict) -> bool:
         min_year = _year_of(station.get("mindate"))
@@ -106,15 +119,39 @@ def select_station(
     ]
     if not candidates:
         return None
-    return min(
-        candidates,
-        key=lambda station: haversine_km(
+
+    def distance(station: dict) -> float:
+        return haversine_km(
             latitude,
             longitude,
             float(station.get("latitude") or 0.0),
             float(station.get("longitude") or 0.0),
-        ),
-    )
+        )
+
+    def elevation(station: dict) -> Optional[float]:
+        try:
+            return float(station["elevation"])
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    located = [
+        station
+        for station in stations
+        if station.get("latitude") is not None
+        and station.get("longitude") is not None
+        and elevation(station) is not None
+    ]
+    local_elevation = elevation(min(located, key=distance)) if located else None
+    first_order = [
+        station
+        for station in candidates
+        if str(station["id"]).startswith(FIRST_ORDER_STATION_PREFIX)
+        and distance(station) <= FIRST_ORDER_MAX_DISTANCE_KM
+        and local_elevation is not None
+        and elevation(station) is not None
+        and abs(elevation(station) - local_elevation) <= FIRST_ORDER_MAX_ELEVATION_DIFF_M
+    ]
+    return min(first_order or candidates, key=distance)
 
 
 async def _noaa_get(client: httpx.AsyncClient, path: str, params: dict) -> dict:
