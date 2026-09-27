@@ -5,10 +5,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Suspense, useState, type FormEvent } from "react";
 
+/** Only same-site relative paths, so a crafted link can't redirect off-site after sign-in. */
+function safeCallbackUrl(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) {
+    return "/";
+  }
+  return value;
+}
+
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+  const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,13 +28,19 @@ function SignInForm() {
     setError(null);
     setLoading(true);
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    setLoading(false);
+    let result: Awaited<ReturnType<typeof signIn>> | undefined;
+    try {
+      result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+    } catch {
+      setError("Sign-in is temporarily unavailable. Please try again.");
+      return;
+    } finally {
+      setLoading(false);
+    }
 
     if (result?.error) {
       setError("Invalid email or password.");
@@ -46,7 +60,7 @@ function SignInForm() {
     <div className="mx-auto w-full max-w-md px-4 py-16 sm:px-6">
       <h1 className="text-3xl font-bold text-brand-primary">Sign In</h1>
       <p className="mt-2 text-sm text-zinc-600">
-        Access full reports and save properties for later.
+        Save properties and download PDF reports.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">

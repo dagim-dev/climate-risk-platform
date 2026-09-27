@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { HazardScore, Severity } from "@/types/risk";
-import { severityBarClass, severityTextClass } from "@/lib/risk-styles";
+import { severityBarClass, severityFromScore, severityTextClass } from "@/lib/risk-styles";
 
 interface ScoreCardProps {
   hazard: string;
@@ -41,14 +41,14 @@ export function ScoreCard({ hazard, icon, data }: ScoreCardProps) {
           <p className="mt-2 text-sm text-amber-900/90">{data.unavailable_reason}</p>
         ) : null}
         <p className="mt-3 text-xs text-amber-800/80">
-          Try analyzing this address again in a few minutes.
+          If a data provider was temporarily unreachable, try again in a few minutes.
         </p>
       </article>
     );
   }
 
-  const severity = (data.severity ?? "Moderate") as Severity;
   const clampedScore = Math.max(0, Math.min(100, data.score));
+  const severity: Severity = data.severity ?? severityFromScore(clampedScore);
 
   return (
     <article className="flex flex-col rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">

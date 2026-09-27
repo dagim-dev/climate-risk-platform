@@ -65,23 +65,15 @@ export function VerdictBadge({
     );
   }
 
+  // The backend only issues a verdict when all four hazards were assessed.
   const style = verdictStyles[verdict];
   const clampedScore = Math.max(0, Math.min(100, overallScore));
-  const partialNote =
-    overallStatus === "partial"
-      ? "Partial data — at least one hazard source is unavailable. Score reflects available sources only."
-      : null;
 
   return (
     <div
-      className={`flex flex-col items-center gap-3 rounded-xl px-6 py-8 text-center shadow-md ${
-        overallStatus === "partial" ? "opacity-90 saturate-50" : ""
-      } ${style.bg} ${style.text}`}
+      className={`flex flex-col items-center gap-3 rounded-xl px-6 py-8 text-center shadow-md ${style.bg} ${style.text}`}
       role="status"
     >
-      {partialNote ? (
-        <p className="max-w-xl rounded-md bg-black/10 px-3 py-1 text-xs font-medium">{partialNote}</p>
-      ) : null}
       <div className="flex items-center gap-3 text-4xl font-bold sm:text-5xl">
         <span aria-hidden="true">{style.icon}</span>
         <span>{style.label}</span>

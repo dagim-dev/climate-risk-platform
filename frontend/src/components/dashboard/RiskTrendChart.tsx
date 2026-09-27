@@ -26,20 +26,22 @@ const HAZARD_LINES = [
 ];
 
 export function RiskTrendChart({ trend }: RiskTrendChartProps) {
-  if (!trend.length) {
+  // Hazards that could not be assessed have no baseline and are left off the chart.
+  const lines = HAZARD_LINES.filter(({ key }) => trend.some((point) => point[key] !== null));
+  if (!trend.length || !lines.length) {
     return null;
   }
 
-  const currentYear = trend.find((point) => !point.is_projection)?.year
-    ?? trend[Math.min(3, trend.length - 1)].year;
+  const observed = trend.filter((point) => !point.is_projection);
+  const currentYear = observed.length ? observed[observed.length - 1].year : undefined;
 
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-lg font-semibold text-brand-primary">Risk Trend Timeline</h3>
+        <h3 className="text-lg font-semibold text-brand-primary">Risk Outlook</h3>
         <p className="text-sm text-zinc-500">
-          Historical points (2000–present) are interpolated from the current score,
-          not independent historical analyses. Future years are simple projections.
+          Only today&apos;s scores are assessed from data. Later years are simple linear
+          projections from today&apos;s scores, not forecasts.
         </p>
       </div>
 
@@ -64,17 +66,19 @@ export function RiskTrendChart({ trend }: RiskTrendChartProps) {
               }}
             />
             <Tooltip
-              formatter={(value, name) => [value ?? 0, String(name)]}
+              formatter={(value, name) => [value ?? "Not assessed", String(name)]}
               labelFormatter={(year) => `Year ${year}`}
             />
             <Legend />
-            <ReferenceLine
-              x={currentYear}
-              stroke="#a1a1aa"
-              strokeDasharray="4 4"
-              label={{ value: "Today", position: "insideTopRight", fontSize: 11 }}
-            />
-            {HAZARD_LINES.map(({ key, label, color }) => (
+            {currentYear !== undefined && (
+              <ReferenceLine
+                x={currentYear}
+                stroke="#a1a1aa"
+                strokeDasharray="4 4"
+                label={{ value: "Today", position: "insideTopRight", fontSize: 11 }}
+              />
+            )}
+            {lines.map(({ key, label, color }) => (
               <Line
                 key={key}
                 type="monotone"
@@ -91,8 +95,9 @@ export function RiskTrendChart({ trend }: RiskTrendChartProps) {
       </div>
 
       <p className="text-xs text-zinc-500">
-        Dashed reference line marks the current year. Projected years (2030–2050) are extrapolated
-        from observed climate trends.
+        The dashed line marks today. Projection slopes reflect each hazard&apos;s observed signal
+        (e.g. the NOAA hot-day trend) and are illustrative only.
+        {lines.length < HAZARD_LINES.length && " Hazards that could not be assessed are not shown."}
       </p>
     </section>
   );

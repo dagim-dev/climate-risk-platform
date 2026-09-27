@@ -69,7 +69,8 @@ export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) 
         <RiskTrendChart trend={report.historical_trend} />
       )}
 
-      <SavePropertyButton report={report} />
+      {/* Keyed so "Property Saved" resets when a different report is shown. */}
+      <SavePropertyButton key={report.generated_at} report={report} />
 
       <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-between">
         <button

@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
-export default auth((req) => {
+export const proxy = auth((req) => {
   const { pathname } = req.nextUrl;
 
   if (pathname.startsWith("/debug") && process.env.NODE_ENV === "production") {
@@ -12,12 +12,8 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  const isLoggedIn = !!req.auth;
-
-  if (
-    !isLoggedIn &&
-    (pathname.startsWith("/report") || pathname.startsWith("/properties"))
-  ) {
+  // Saved properties are per-account. Analysis and the printable report are open to everyone.
+  if (!req.auth && pathname.startsWith("/properties")) {
     const signInUrl = new URL("/sign-in", req.url);
     signInUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(signInUrl);
@@ -25,5 +21,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/report/:path*", "/properties/:path*", "/debug/:path*"],
+  matcher: ["/properties/:path*", "/debug/:path*"],
 };

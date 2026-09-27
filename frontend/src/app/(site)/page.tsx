@@ -4,10 +4,24 @@ import { useEffect, useRef, useState } from "react";
 import { AddressSearch } from "@/components/ui/AddressSearch";
 import { LoadingSkeleton } from "@/components/dashboard/LoadingSkeleton";
 import { RiskDashboard } from "@/components/dashboard/RiskDashboard";
+import {
+  clearDashboardRestore,
+  isDashboardRestoreRequested,
+  useStoredReport,
+} from "@/lib/report-storage";
 import type { ClimateRiskReport } from "@/types/risk";
 
 export default function Home() {
-  const [report, setReport] = useState<ClimateRiskReport | null>(null);
+  const [searchedReport, setReport] = useState<ClimateRiskReport | null>(null);
+  const [restoreDismissed, setRestoreDismissed] = useState(false);
+  // "Back to Dashboard" on /report sets a flag so the last report reopens here.
+  // (Server render and hydration see no stored report either way, so markup matches.)
+  const [restoreRequested] = useState(
+    () => typeof window !== "undefined" && isDashboardRestoreRequested(),
+  );
+  const storedReport = useStoredReport();
+  const report =
+    searchedReport ?? (restoreRequested && !restoreDismissed ? storedReport : null);
   const [loading, setLoading] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -20,6 +34,8 @@ export default function Home() {
 
   const handleReset = () => {
     setReport(null);
+    setRestoreDismissed(true);
+    clearDashboardRestore();
     heroRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -54,11 +70,16 @@ export default function Home() {
           aria-label="Risk assessment results"
         >
           {loading && <LoadingSkeleton />}
-          {!loading && report && (
+          {report && (
             <div className="space-y-16">
-              <RiskDashboard report={report} onAnalyzeAnother={handleReset} />
+              {!loading && <RiskDashboard report={report} onAnalyzeAnother={handleReset} />}
 
-              <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-4 border-t border-zinc-200 pt-10">
+              {/* Hidden rather than unmounted while loading, so a failed search keeps its error. */}
+              <div
+                className={`mx-auto w-full max-w-4xl flex-col items-center gap-4 border-t border-zinc-200 pt-10 ${
+                  loading ? "hidden" : "flex"
+                }`}
+              >
                 <h3 className="text-lg font-semibold text-brand-primary">
                   Analyze another address
                 </h3>

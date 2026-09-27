@@ -68,7 +68,7 @@ export default function SignUpPage() {
     <div className="mx-auto w-full max-w-md px-4 py-16 sm:px-6">
       <h1 className="text-3xl font-bold text-brand-primary">Create Account</h1>
       <p className="mt-2 text-sm text-zinc-600">
-        Sign up for unlimited analyses, full reports, and saved properties.
+        Analysis is free for everyone. Create an account to save properties and download PDF reports.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">

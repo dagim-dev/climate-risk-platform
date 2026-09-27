@@ -122,7 +122,7 @@ test.describe("Address search and risk dashboard", () => {
     await page.getByRole("button", { name: "View Full Report" }).click();
 
     await expect(page.getByRole("heading", { name: mockReport.address })).toBeVisible();
-    await expect(page.getByText("Flood", { exact: true })).toBeVisible();
+    await expect(page.getByText("Flood", { exact: true }).first()).toBeVisible();
   });
 
   test("analyze another address resets the dashboard", async ({ page }) => {

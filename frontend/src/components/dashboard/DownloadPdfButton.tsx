@@ -1,16 +1,15 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
 
-import { generatePropertyPdf } from "@/lib/api-client";
+import { ApiError, generatePropertyPdf } from "@/lib/api-client";
 
 interface DownloadPdfButtonProps {
   propertyId: number;
-  existingPdfUrl?: string | null;
 }
 
-export function DownloadPdfButton({ propertyId, existingPdfUrl }: DownloadPdfButtonProps) {
+export function DownloadPdfButton({ propertyId }: DownloadPdfButtonProps) {
   const { data: session } = useSession();
   const accessToken = session?.accessToken;
 
@@ -20,13 +19,27 @@ export function DownloadPdfButton({ propertyId, existingPdfUrl }: DownloadPdfBut
   async function handleDownload() {
     if (!accessToken) return;
 
+    // Open the tab synchronously in the click handler; browsers block window.open
+    // after an await. It is pointed at the signed link once that is ready.
+    const pdfWindow = window.open("", "_blank");
     setLoading(true);
     setError(null);
 
     try {
-      const pdfUrl = existingPdfUrl ?? (await generatePropertyPdf(propertyId, accessToken));
-      window.open(pdfUrl, "_blank", "noopener,noreferrer");
+      // Signed links expire, so always request a fresh one.
+      const pdfUrl = await generatePropertyPdf(propertyId, accessToken);
+      if (pdfWindow) {
+        pdfWindow.opener = null;
+        pdfWindow.location.href = pdfUrl;
+      } else {
+        window.location.href = pdfUrl;
+      }
     } catch (err) {
+      pdfWindow?.close();
+      if (err instanceof ApiError && err.status === 401) {
+        await signOut({ callbackUrl: "/sign-in?callbackUrl=/properties" });
+        return;
+      }
       setError(err instanceof Error ? err.message : "Failed to download PDF");
     } finally {
       setLoading(false);
