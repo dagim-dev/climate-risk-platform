@@ -55,7 +55,7 @@ Data honesty is a deliberate product rule, and recent commits enforce it. Never 
 
 Other backend pieces:
 - Auth: the backend issues its own JWTs (`core/security.py`, `JWT_SECRET`, which is required in production). `api/deps.py` provides `get_current_user` and `get_optional_user`. `POST /auth/oauth` verifies a Google ID token (`core/google_oauth.py`) before issuing a JWT.
-- Saved properties store the full report. PDFs (`services/pdf/`) are rendered from `templates/report.html`, written to local disk (`PDF_STORAGE_DIR`) and served through signed download tokens.
+- Saved properties store the full report. PDFs (`services/pdf/`) are rendered from `templates/report.html` on demand for each download (never persisted to disk, since Cloud Run's filesystem is ephemeral) and served through signed download tokens.
 - Settings come from `core/config.py` (pydantic-settings, reading `backend/.env`).
 
 ## Frontend architecture

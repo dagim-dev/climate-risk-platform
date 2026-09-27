@@ -17,7 +17,6 @@ from app.schemas.pdf import PdfDownloadResponse
 from app.schemas.property import PropertyCreate, PropertyListItem, PropertyResponse
 from app.schemas.risk import ClimateRiskReport
 from app.services.pdf.generator import generate_report_pdf
-from app.services.pdf.storage import delete_pdf, load_pdf, save_pdf
 
 router = APIRouter(prefix="/properties", tags=["properties"])
 
@@ -120,12 +119,7 @@ async def generate_property_pdf(
     if property_ is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found")
 
-    report = ClimateRiskReport.model_validate(property_.report_data)
-    # PDF rendering is CPU-bound and synchronous; keep it off the event loop.
-    pdf_bytes = await run_in_threadpool(generate_report_pdf, report)
-    await run_in_threadpool(save_pdf, property_id, pdf_bytes)
-
-    # Signed links expire, so a fresh one is issued on every request rather than stored.
+    # The PDF itself is rendered on download, not here, so it's never stale on disk.
     return PdfDownloadResponse(pdf_url=_build_signed_pdf_url(property_id, current_user.id))
 
 
@@ -141,14 +135,15 @@ async def download_property_pdf(
 
     # A still-valid link must stop working once the property is deleted.
     owned = await db.execute(
-        select(Property.id).where(Property.id == property_id, Property.user_id == user_id)
+        select(Property).where(Property.id == property_id, Property.user_id == user_id)
     )
-    if owned.scalar_one_or_none() is None:
+    property_ = owned.scalar_one_or_none()
+    if property_ is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PDF not found")
 
-    pdf_bytes = load_pdf(property_id)
-    if pdf_bytes is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PDF not found")
+    report = ClimateRiskReport.model_validate(property_.report_data)
+    # PDF rendering is CPU-bound and synchronous; keep it off the event loop.
+    pdf_bytes = await run_in_threadpool(generate_report_pdf, report)
 
     return Response(
         content=pdf_bytes,
@@ -177,4 +172,3 @@ async def delete_property(
 
     await db.delete(property_)
     await db.commit()
-    delete_pdf(property_id)

@@ -16,7 +16,6 @@ class Settings(BaseSettings):
     JWT_SECRET: str = _DEV_JWT_SECRET
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60 * 24 * 7
-    PDF_STORAGE_DIR: str = "storage/pdfs"
     PDF_SIGNED_URL_EXPIRE_MINUTES: int = 60
     API_BASE_URL: str = "http://localhost:8000"
     GOOGLE_CLIENT_ID: str = ""

@@ -19,14 +19,14 @@ choose to go live.
 Do not treat those hostnames as a running product. The GitHub Actions
 deploy workflow does **not** run on push to `main`.
 
-## PDF storage (local-only today)
+## PDF generation (regenerated on demand)
 
-Generated PDFs are written to `PDF_STORAGE_DIR` on the backend filesystem
-(`storage/pdfs` by default) and downloaded via short-lived JWT URLs. Cloud
-Run disks are ephemeral, so PDFs will not survive new revisions.
-
-**Before a real Cloud Run deploy:** move PDF storage to GCS or S3, or
-document that PDF downloads are session-local and may disappear.
+PDFs are rendered from the saved report on every download request and
+streamed straight back, rather than being written to the backend
+filesystem. This avoids any dependency on Cloud Run's disk, which is
+ephemeral and would otherwise lose PDFs across revisions or scale-to-zero.
+The signed JWT download URL still expires after
+`PDF_SIGNED_URL_EXPIRE_MINUTES`.
 
 ## Public API posture
 
@@ -85,6 +85,14 @@ in Google Secret Manager.
 ## Step 88 — Configure Production Environment Variables
 
 **Never commit secrets to the repository.** Use each provider's secret manager.
+
+`backend/.env` is for local development only and is gitignored — it should
+never be committed, and its keys should never be reused for production.
+Even locally, treat any key placed in it as sensitive: don't paste it into
+chat, logs, or screenshots, and rotate a key immediately if it's ever
+pasted somewhere it shouldn't be (a doc, a ticket, a public repo). None of
+the values below belong in an `.env` file in production — they're injected
+as environment variables by the secret manager instead.
 
 ### Backend secrets (Google Secret Manager)
 

@@ -12,7 +12,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
-RUN useradd --create-home --uid 1000 app && mkdir -p storage/pdfs && chown -R app /app
+RUN useradd --create-home --uid 1000 app && chown -R app /app
 USER app
 
 ENV PORT=8080
