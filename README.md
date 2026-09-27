@@ -10,7 +10,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.0.0-brightgreen)]()
 [![Python](https://img.shields.io/badge/Python-3.12-blue)](https://www.python.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 
 </div>
 
@@ -70,7 +70,7 @@ The platform is designed to turn raw climate data into **actionable business int
 | **User Accounts** | Email/password and Google OAuth (NextAuth.js). Google sign-in verifies an ID token |
 | **Saved Properties** | Save and revisit past analyses from a personal property dashboard |
 | **Server PDF Reports** | Server-generated PDFs stored on local disk with signed download URLs |
-| **Historical Risk Trends** | Interpolated timeline from 2000 to present with 2030/2040/2050 projections |
+| **Risk Outlook** | Today's assessed scores with illustrative 2030/2040/2050 linear projections (no back-filled history) |
 
 The product is **free**. There is no paid tier or feature gating.
 
@@ -83,7 +83,7 @@ The product is **free**. There is no paid tier or feature gating.
 | **Portfolio Analysis** | Bulk CSV upload for up to 1,000 addresses with background job processing |
 | **Portfolio Heatmaps** | Visual risk concentration map and "Top 10 Worst Exposures" ranking table |
 | **Custom Risk Models** | Adjust hazard weighting per organization to match portfolio exposure profile |
-| **Public REST API** | API key authentication with tiered rate limits for developer integration |
+| **Public REST API** | API key authentication with rate limits for developer integration |
 | **Insurance Estimates** | Annual premium range estimates by hazard score and FEMA flood zone |
 | **White-Label Reports** | Custom branding, logo upload, and board-ready executive summary PDFs |
 | **Portfolio CSV Export** | Exportable risk data for integration into Excel and BI tools |
@@ -96,13 +96,13 @@ The product is **free**. There is no paid tier or feature gating.
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | Next.js 14, TypeScript, Tailwind CSS |
+| **Frontend** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Auth.js (NextAuth v5) |
 | **Backend** | Python 3.12, FastAPI, Uvicorn |
 | **Database** | PostgreSQL 16, SQLAlchemy (async), Alembic |
 | **AI** | OpenAI GPT-4o-mini |
 | **Authentication** | NextAuth.js |
 | **Data Sources** | NOAA CDO (GSOY), FEMA NFHL (+ Esri Living Atlas mirror), USFS Wildfire Hazard Potential, NIFC wildfire perimeters |
-| **Infrastructure** | AWS / Google Cloud (backend), Vercel (frontend) |
+| **Infrastructure** | Google Cloud Run (backend) and Vercel (frontend) — scaffolding only, not deployed |
 | **Monitoring** | Sentry |
 | **CI/CD** | GitHub Actions |
 | **Containerization** | Docker, Docker Compose |
@@ -173,7 +173,7 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate     # macOS/Linux
 # .venv\Scripts\activate      # Windows
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # runtime + test dependencies
 cd ..
 ```
 
@@ -188,9 +188,10 @@ cd ..
 | Variable | Description | Required |
 |---|---|:---:|
 | `NEXT_PUBLIC_API_URL` | Base URL of the FastAPI backend | ✅ |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps JavaScript API key | Optional |
-| `AUTH_SECRET` | NextAuth secret | ✅ |
-| `NEXTAUTH_URL` | Frontend origin (`http://localhost:3000` locally) | ✅ |
+| `API_INTERNAL_URL` | Backend URL for server-side calls when it differs from the browser URL (Docker: `http://backend:8000`) | |
+| `AUTH_SECRET` | Auth.js secret | ✅ |
+| `AUTH_URL` | Frontend origin (`http://localhost:3000` locally; `NEXTAUTH_URL` also works) | ✅ |
+| `AUTH_TRUST_HOST` | `true` when not hosted on Vercel (Docker, Cloud Run) | |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | ✅ for Google sign-in |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | ✅ for Google sign-in |
 
@@ -206,7 +207,8 @@ cd ..
 | `NOAA_API_KEY` | NOAA Climate Data Online API token | ✅ for heat data |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID (must match the frontend app) | ✅ for Google sign-in |
 | `JWT_SECRET` | Signing secret for access and PDF tokens. Required in production | ✅ |
-| `ENVIRONMENT` | `development` or `production` | |
+| `ENVIRONMENT` | `development` or `production` (`/debug/sentry-test` exists only in `development`) | |
+| `API_BASE_URL` | Public backend URL used in signed PDF links (default `http://localhost:8000`) | ✅ in production |
 | `APP_VERSION` | Reported on `/health` (default `2.0.0`) | |
 
 **Example `backend/.env`:**
@@ -239,11 +241,9 @@ docker-compose up --build
 | Interactive API Docs | http://localhost:8000/docs |
 | PostgreSQL | localhost:5432 |
 
-On first run, apply the database migrations:
-
-```bash
-docker-compose exec backend alembic upgrade head
-```
+The backend container applies database migrations (`alembic upgrade head`) on start.
+Inside Compose the backend reaches Postgres at `db:5432`; this overrides the
+`localhost` URL in `backend/.env`, which is for running outside Docker.
 
 <br>
 
@@ -395,7 +395,7 @@ climate-risk-platform/
 │   │   │   │   └── contact/page.tsx
 │   │   │   └── report/page.tsx      # Printable report view
 │   │   ├── components/
-│   │   │   ├── dashboard/           # Risk dashboard, map, trends, PDF
+│   │   │   ├── dashboard/           # Risk dashboard, outlook chart, PDF
 │   │   │   ├── layout/              # Header, Footer
 │   │   │   ├── auth/                # NextAuth session + nav
 │   │   │   └── ui/
@@ -443,7 +443,8 @@ climate-risk-platform/
 │   ├── alembic/                     # Database migration files
 │   ├── tests/                       # Pytest unit tests
 │   ├── .env.example
-│   └── requirements.txt
+│   ├── requirements.txt             # runtime dependencies (used by the Docker image)
+│   └── requirements-dev.txt         # + pytest, aiosqlite for tests
 │
 ├── docs/                            # Architecture diagrams and documentation
 │   ├── data-sources.md              # External API documentation and rate limits
@@ -453,7 +454,7 @@ climate-risk-platform/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml                   # CI: test and lint on every PR
-│       └── deploy.yml               # CD: deploy to production on push to main
+│       └── deploy.yml               # CD scaffolding (manual trigger only)
 ├── docker-compose.yml
 ├── README.md
 ├── CHANGELOG.md
@@ -474,7 +475,7 @@ source .venv/bin/activate
 pytest tests/ -v --cov=app --cov-report=term-missing
 ```
 
-Minimum required coverage: **80%** on all scoring modules.
+Tests use a temporary SQLite database and mocked HTTP; no Postgres or API keys are needed.
 
 <br>
 
@@ -482,7 +483,7 @@ Minimum required coverage: **80%** on all scoring modules.
 
 ```bash
 cd frontend
-npx playwright test
+npx playwright test --project=chromium   # what CI runs; the backend is mocked
 
 # Run with visible browser for debugging:
 npx playwright test --headed
@@ -502,7 +503,7 @@ This mirrors what GitHub Actions runs on every pull request:
 cd backend && pytest tests/ -v
 
 # Frontend
-cd ../frontend && npm run lint && npx playwright test
+cd ../frontend && npm run lint && npx tsc --noEmit && npx playwright test --project=chromium
 ```
 
 ---
@@ -552,7 +553,7 @@ See [`docs/production-deployment.md`](docs/production-deployment.md).
 | `v0.2-alpha` | ✅ Complete | Geocoding, climate data integrations, risk scoring engine |
 | `v0.3-alpha` | ✅ Complete | Full frontend: address search, dashboard, verdict badge |
 | `v1.0.0` | ✅ Complete | AI summaries, printable reports, E2E tests (local-ready) |
-| `v2.0.0` | ✅ Complete | Free product: auth, saved properties, PDFs, trends, map |
+| `v2.0.0` | ✅ Complete | Free product: auth, saved properties, PDFs, risk outlook |
 | `v3.0.0` | 🔜 Planned | Portfolio analysis, public API, custom models, insurance estimates |
 
 See [`TODO.md`](TODO.md) for the full granular task breakdown and Git workflow for each version.
@@ -591,7 +592,7 @@ Climate risk data is sourced from the following government and scientific agenci
 
 NASA EarthData is documented in `docs/data-sources.md` but is **not queried**.
 
-Historical trend points are interpolated from the current score. Flood zones come from FEMA NFHL, falling back to Esri's Living Atlas mirror of the same layer when `hazards.fema.gov` is unreachable. Heat uses NOAA GSOY annual counts of days at or above 90°F. The overall Go / Caution / Avoid verdict is withheld unless all four hazards were assessed.
+Only today's scores are assessed; the outlook chart adds illustrative linear projections and no back-filled history. Flood zones come from FEMA NFHL, falling back to Esri's Living Atlas mirror of the same layer when `hazards.fema.gov` is unreachable (areas without a FEMA map are reported as unavailable, not as minimal risk). Heat uses NOAA GSOY annual counts of days at or above 90°F from a representative nearby station. The overall Go / Caution / Avoid verdict is withheld unless all four hazards were assessed. See [`docs/data-sources.md`](docs/data-sources.md).
 
 ---
 

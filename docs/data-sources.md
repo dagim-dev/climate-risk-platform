@@ -44,9 +44,16 @@ CDO does **not** support direct lat/lng queries. Use a two-step workflow:
 GET /stations?datasetid=GSOY&datatypeid=DX90&extent=25.27,-80.63,26.27,-79.63&limit=100
 ```
 
-   The app picks the **nearest station with a long record** (`mindate` within the
-   first 10 years of the 30-year window, `maxdate` within the last 2 years,
-   `datacoverage` ≥ 0.7). The closest station alone is often a short-lived backup.
+   A station qualifies with a long record: `mindate` early enough to give at least
+   10 years in the 30-year window, `maxdate` within the last 2 years, and
+   `datacoverage` ≥ 0.7. The closest station alone is often a short-lived backup.
+   Among qualifying stations the app prefers the nearest **first-order NWS/ASOS
+   station** (`GHCND:USW…`) within 50 km whose elevation is within 100 m of the
+   nearest station of any kind (a proxy for the property's elevation); otherwise it
+   uses the nearest qualifying station. Live checks found co-op gauges with shifted
+   records (Key Biscayne for Miami Beach: +47 hot days/decade) and a rainforest
+   valley gauge for downtown Honolulu (0 hot days); the elevation guard stops a
+   valley airport being used for a ridge town (Oroville for Paradise, CA).
 
 2. **Fetch annual days ≥ 90°F** (`DX90`, Global Summary of the Year) in 10-year chunks:
 
@@ -57,11 +64,9 @@ GET /data?datasetid=GSOY&stationid=GHCND:USW00092811&datatypeid=DX90
 
    Three requests cover 30 years. The earlier approach (one `GHCND` daily `TMAX`
    request per year, 30 per analysis) hit the 5 req/s limit and took 25–40 s.
-   The trend is an ordinary least-squares slope in hot days per decade; the app
-   does not project future temperatures. A single HTTP 429 is retried after 1.2 s.
-
-Normals (30-year averages) use dataset `NORMAL_DLY` with datatype
-`DLY-TMAX-NORMAL`.
+   The trend is an ordinary least-squares slope in hot days per decade, computed
+   against the actual years (gaps in the record don't compress time). Factors cite
+   the observed span, e.g. "1996–2025". A single HTTP 429 is retried after 1.2 s.
 
 ### Rate limits
 
@@ -211,14 +216,29 @@ https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_Flood_Haza
 ```
 
 It has the same `FLD_ZONE`, `ZONE_SUBTY`, `SFHA_TF`, and `STATIC_BFE` fields.
-The "reduced set" omits minimal-hazard zone X polygons, so no match is read as
-zone X. Reports name the mirror in the flood factors when it was used.
+The "reduced set" keeps 1% and 0.2% annual chance zones and levee areas but omits
+minimal-hazard zone X, so a miss there is reported as "outside FEMA-mapped 1% and
+0.2% flood hazard areas" with **Low** confidence: it can't rule out an unmapped
+area. Its subtype text is title case (`0.2 Percent Annual Chance Flood Hazard`),
+so subtypes are matched case-insensitively. Reports name the mirror in the flood
+factors when it was used.
+
+### How zones are scored
+
+| Zone | Score | Notes |
+|---|---|---|
+| `V`, `VE`, `A`, `AE`, `A99`, `AR*` | 80 (+8 with a real BFE) | 1% annual chance SFHA |
+| `AO`, `AH` | 60 | shallow flooding |
+| `X` with `ZONE_SUBTY` 0.2% or levee | 40 | shaded X; `SFHA_TF` is `F` for these |
+| `X` (minimal) | 12 | High confidence on the full NFHL; Low on a mirror miss |
+| `D`, `AREA NOT INCLUDED`, or no NFHL polygon | unavailable | FEMA has not determined the hazard |
 
 ### Known edge cases
 
-- Empty `features[]` outside mapped FEMA areas (common in interior West)
+- Empty `features[]` outside mapped FEMA areas (common in interior West): reported
+  as unavailable, not as zone X
 - Points on zone boundaries may return multiple features — select highest-risk zone
-- `STATIC_BFE` is often null for Zone X
+- `STATIC_BFE` is often null for Zone X, and `-9999` means "no BFE"
 - Preliminary (non-effective) maps live in a separate `Prelim_NFHL` service
 
 ---
@@ -352,7 +372,7 @@ Derive Saffir-Simpson category from `USA_WIND` (knots):
 | Hurricane | IBTrACS FeatureServer | None | `hurricane_data.py` |
 | Heat | NOAA CDO GSOY `DX90` | `token` header | `heat_data.py` |
 | Wildfire | USFS WHP 2023 + WFIGS Fire Perimeter History | None | `wildfire_data.py` |
-| Projections | Not queried (NASA NEX-GDDP documented only) | — | heat reports the observed 30-year trend only |
+| Projections | Not queried (NASA NEX-GDDP documented only) | — | outlook points are linear projections from today's scores (`trend_builder.py`), labelled as such |
 
 All spatial ArcGIS queries share the pattern: point geometry (`lon,lat`),
 `esriSpatialRelIntersects`, optional `distance` + `units` for radius searches.

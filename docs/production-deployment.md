@@ -99,6 +99,11 @@ in Google Secret Manager.
 | `CORS_ORIGINS` | `https://climaterisk.io,https://www.climaterisk.io` |
 | `ENVIRONMENT` | `production` |
 | `APP_VERSION` | `2.0.0` |
+| `API_BASE_URL` | Public backend URL, used in signed PDF links (e.g. `https://api.climaterisk.io`) |
+
+Run migrations against the production database before (or as part of) each deploy:
+`alembic upgrade head` from `backend/` with `DATABASE_URL` pointing at production.
+`deploy.yml` does not do this yet.
 
 Create secrets:
 
@@ -118,7 +123,7 @@ Set in Vercel Dashboard → Project → Settings → Environment Variables (Prod
 |----------|-------|
 | `NEXT_PUBLIC_API_URL` | `https://api.climaterisk.io` |
 | `AUTH_SECRET` | NextAuth secret |
-| `NEXTAUTH_URL` | Production frontend origin |
+| `AUTH_URL` | Production frontend origin |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth app credentials |
 
 Or via CLI:
@@ -126,7 +131,7 @@ Or via CLI:
 ```bash
 cd frontend
 vercel env add NEXT_PUBLIC_API_URL production
-vercel env add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY production
+vercel env add AUTH_SECRET production
 ```
 
 ### CORS configuration
