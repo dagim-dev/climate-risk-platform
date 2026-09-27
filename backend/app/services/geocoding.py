@@ -9,6 +9,9 @@ GEOCODE_TIMEOUT = httpx.Timeout(8.0, connect=3.0)
 
 US_COUNTRY_CODE = "US"
 NON_US_ADDRESS_ERROR = "Please enter a valid US address."
+ADDRESS_NOT_FOUND_ERROR = (
+    "We couldn't find that address. Check the spelling and include the city and state."
+)
 # Google statuses that mean the address itself is the problem; anything else
 # (REQUEST_DENIED, OVER_QUERY_LIMIT, UNKNOWN_ERROR) is a service/configuration failure.
 ADDRESS_ERROR_STATUSES = {"ZERO_RESULTS", "INVALID_REQUEST"}
@@ -39,7 +42,7 @@ async def geocode_address(address: str) -> Coordinates:
 
     status = data.get("status")
     if status in ADDRESS_ERROR_STATUSES:
-        raise ValueError(f"Geocoding failed: {status}")
+        raise ValueError(ADDRESS_NOT_FOUND_ERROR)
     if status != "OK" or not data.get("results"):
         raise GeocodingServiceError(f"Geocoding service error: {status}")
 

@@ -95,7 +95,7 @@ async def test_invalid_address_raises_value_error():
         "app.services.geocoding.httpx.AsyncClient",
         return_value=mock_http_client,
     ):
-        with pytest.raises(ValueError, match="Geocoding failed: ZERO_RESULTS"):
+        with pytest.raises(ValueError, match="couldn't find that address"):
             await geocode_address("xyzzy_nonexistent_place_12345")
 
 

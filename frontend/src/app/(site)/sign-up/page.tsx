@@ -37,8 +37,15 @@ export default function SignUpPage() {
       });
 
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { detail?: string } | null;
-        setError(body?.detail ?? "Registration failed.");
+        const body = (await response.json().catch(() => null)) as { detail?: unknown } | null;
+        // FastAPI validation errors (422) return a list, not a string.
+        setError(
+          typeof body?.detail === "string"
+            ? body.detail
+            : response.status === 422
+              ? "Please enter a valid email and a password of at least 8 characters."
+              : "Registration failed.",
+        );
         setLoading(false);
         return;
       }
