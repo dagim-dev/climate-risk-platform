@@ -32,12 +32,13 @@ def verify_google_id_token(token: str) -> GoogleIdentity:
     email = payload.get("email")
     if not google_id or not email:
         raise ValueError("Google ID token is missing required claims")
-    if payload.get("email_verified") is False:
+    # Require an explicit verified claim: the email is used to link existing accounts.
+    if payload.get("email_verified") is not True:
         raise ValueError("Google email is not verified")
 
     name = payload.get("name")
     return GoogleIdentity(
         google_id=str(google_id),
-        email=str(email),
+        email=str(email).strip().lower(),
         name=str(name) if name else None,
     )

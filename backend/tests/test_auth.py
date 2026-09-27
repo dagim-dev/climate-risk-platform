@@ -94,3 +94,40 @@ def test_oauth_issues_jwt_when_google_token_is_verified(client, monkeypatch):
     )
     assert me.status_code == 200
     assert me.json()["email"] == "user@gmail.com"
+
+
+def test_google_token_without_email_verified_claim_is_rejected(monkeypatch):
+    import pytest
+
+    from app.core import google_oauth
+
+    monkeypatch.setattr(google_oauth.settings, "GOOGLE_CLIENT_ID", "client-id")
+    monkeypatch.setattr(
+        google_oauth.id_token,
+        "verify_oauth2_token",
+        lambda *_args, **_kwargs: {"sub": "123", "email": "victim@example.com"},
+    )
+
+    with pytest.raises(ValueError, match="not verified"):
+        google_oauth.verify_google_id_token("token")
+
+
+def test_email_is_case_insensitive(client):
+    register = client.post(
+        "/api/v1/auth/register",
+        json={"email": "Mixed.Case@Example.com", "password": "securepass"},
+    )
+    assert register.status_code == 201
+    assert register.json()["user"]["email"] == "mixed.case@example.com"
+
+    duplicate = client.post(
+        "/api/v1/auth/register",
+        json={"email": "mixed.case@example.com", "password": "securepass"},
+    )
+    assert duplicate.status_code == 400
+
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"email": "MIXED.CASE@example.com", "password": "securepass"},
+    )
+    assert login.status_code == 200

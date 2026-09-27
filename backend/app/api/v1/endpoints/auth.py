@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -18,6 +18,15 @@ from app.schemas.auth import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+def _normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
+def _email_matches(email: str):
+    # Case-insensitive so accounts created before emails were normalized still match.
+    return func.lower(User.email) == _normalize_email(email)
+
+
 def _auth_response(user: User) -> AuthResponse:
     token = create_access_token(str(user.id))
     return AuthResponse(
@@ -28,12 +37,12 @@ def _auth_response(user: User) -> AuthResponse:
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    existing = await db.execute(select(User).where(User.email == request.email))
+    existing = await db.execute(select(User).where(_email_matches(request.email)))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
     user = User(
-        email=request.email,
+        email=_normalize_email(request.email),
         hashed_password=hash_password(request.password),
         name=request.name,
     )
@@ -45,7 +54,7 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
 
 @router.post("/login", response_model=AuthResponse)
 async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == request.email))
+    result = await db.execute(select(User).where(_email_matches(request.email)))
     user = result.scalar_one_or_none()
     if user is None or user.hashed_password is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
@@ -65,7 +74,7 @@ async def oauth_sync(request: OAuthSyncRequest, db: AsyncSession = Depends(get_d
     user = result.scalar_one_or_none()
 
     if user is None:
-        email_result = await db.execute(select(User).where(User.email == identity.email))
+        email_result = await db.execute(select(User).where(_email_matches(identity.email)))
         user = email_result.scalar_one_or_none()
         if user is not None:
             user.google_id = identity.google_id

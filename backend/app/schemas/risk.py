@@ -4,12 +4,14 @@ from pydantic import BaseModel, Field
 
 HazardStatus = Literal["ok", "stale", "unavailable"]
 OverallStatus = Literal["complete", "partial", "unavailable"]
+Severity = Literal["Low", "Moderate", "High", "Extreme"]
+Verdict = Literal["Go", "Caution", "Avoid"]
 
 
 class HazardScore(BaseModel):
     status: HazardStatus = "ok"
     score: Optional[int] = Field(default=None, ge=0, le=100)
-    severity: Optional[str] = None
+    severity: Optional[Severity] = None
     confidence: str = "Medium"
     primary_factors: List[str] = Field(default_factory=list)
     as_of: Optional[str] = None
@@ -42,7 +44,7 @@ class ClimateRiskReport(BaseModel):
     wildfire_risk: HazardScore
     overall_risk_score: Optional[int] = Field(default=None, ge=0, le=100)
     overall_status: OverallStatus = "complete"
-    verdict: Optional[str] = None
+    verdict: Optional[Verdict] = None
     verdict_reason: Optional[str] = None
     sources: Dict[str, SourceStatus] = Field(default_factory=dict)
     ai_summary: Optional[str] = None

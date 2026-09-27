@@ -72,6 +72,9 @@ def test_properties_crud_and_pdf_download(client):
     deleted = client.delete(f"/api/v1/properties/{property_id}", headers=headers)
     assert deleted.status_code == 204
 
+    after_delete = client.get(f"/api/v1/properties/{property_id}/pdf/download", params={"token": token})
+    assert after_delete.status_code == 404
+
     empty = client.get("/api/v1/properties", headers=headers)
     assert empty.status_code == 200
     assert empty.json() == []

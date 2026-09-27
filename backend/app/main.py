@@ -35,7 +35,8 @@ async def health_check():
     return {"status": "ok", "version": settings.APP_VERSION}
 
 
-if settings.ENVIRONMENT != "production":
+# Only in local development: a missing or misspelled ENVIRONMENT must not expose it.
+if settings.ENVIRONMENT == "development":
     @app.get("/debug/sentry-test")
     async def sentry_test():
         raise RuntimeError("Sentry test error — intentional for error monitoring verification")
