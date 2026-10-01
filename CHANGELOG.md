@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-01
+
 ### Fixed
 
 - Flood: shaded zone X (0.2% / levee) was scored as minimal; `STATIC_BFE` -9999 was
@@ -22,6 +24,8 @@
   stuck loading; expired sessions looked signed in; open redirect on sign-in;
   hydration-unsafe report page; null severity shown as "Moderate"; sign-up crash on
   validation errors; Next.js dev output written to `frontend/frontend/.next`
+- asyncpg's statement cache is disabled for Postgres so the backend works behind
+  Supabase's transaction pooler
 
 ### Changed
 
@@ -35,6 +39,8 @@
 - Docker image installs WeasyPrint's system libraries and runs as non-root;
   Compose waits for Postgres and runs migrations on start
 - `properties.pdf_url` column dropped (migration `a7b8c9d0e1f2`)
+- PDFs are rendered on demand for each download instead of being stored on disk
+- Backend source deploys use a `.gcloudignore` that excludes `.env` and `.venv`
 
 ### Removed
 
