@@ -1,6 +1,4 @@
 from datetime import datetime
-from typing import Optional
-
 from sqlalchemy import JSON, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -16,7 +14,6 @@ class Property(Base):
     latitude: Mapped[float]
     longitude: Mapped[float]
     report_data: Mapped[dict] = mapped_column(JSON)
-    pdf_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

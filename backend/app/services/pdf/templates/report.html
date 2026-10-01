@@ -54,7 +54,12 @@
 
   <div class="verdict">
     <p class="verdict-label">Overall Verdict</p>
+    {% if report.verdict %}
     <p class="verdict-value">{{ report.verdict }} — {{ report.overall_risk_score }} / 100</p>
+    {% if report.verdict_reason %}<p class="verdict-label">{{ report.verdict_reason }}</p>{% endif %}
+    {% else %}
+    <p class="verdict-value">Withheld — incomplete hazard data</p>
+    {% endif %}
   </div>
 
   {% for hazard in hazards %}
@@ -72,6 +77,6 @@
   </div>
   {% endif %}
 
-  <footer>Risk data sourced from NOAA, FEMA NFHL, and USGS.</footer>
+  <footer>Risk data sourced from NOAA, FEMA NFHL, USFS, and NIFC.</footer>
 </body>
 </html>

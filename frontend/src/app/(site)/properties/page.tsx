@@ -2,10 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
-import { analyzeAddress, deleteProperty, listProperties, type SavedPropertyListItem } from "@/lib/api-client";
+import {
+  ApiError,
+  analyzeAddress,
+  deleteProperty,
+  listProperties,
+  saveProperty,
+  type SavedPropertyListItem,
+} from "@/lib/api-client";
 import { DownloadPdfButton } from "@/components/dashboard/DownloadPdfButton";
 import { saveReport } from "@/lib/report-storage";
 
@@ -18,6 +25,14 @@ function formatDate(iso: string): string {
   });
 }
 
+function isExpiredSession(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 401;
+}
+
+function signInAgain() {
+  return signOut({ callbackUrl: "/sign-in?callbackUrl=/properties" });
+}
+
 export default function PropertiesPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -27,6 +42,7 @@ export default function PropertiesPage() {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rerunningId, setRerunningId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     if (status !== "authenticated" || !accessToken) {
@@ -44,7 +60,11 @@ export default function PropertiesPage() {
         if (!cancelled) {
           setProperties(items);
         }
-      } catch {
+      } catch (err) {
+        if (isExpiredSession(err)) {
+          await signInAgain();
+          return;
+        }
         if (!cancelled) {
           setError("Failed to load saved properties.");
         }
@@ -62,7 +82,10 @@ export default function PropertiesPage() {
     };
   }, [status, accessToken]);
 
-  const loading = status === "loading" || (status === "authenticated" && !loaded);
+  // Signed in, but without a backend token (e.g. the backend was unreachable during
+  // Google sign-in): nothing can load until the user signs in again.
+  const missingToken = status === "authenticated" && !accessToken;
+  const loading = status === "loading" || (status === "authenticated" && !missingToken && !loaded);
 
   async function handleRerun(property: SavedPropertyListItem) {
     if (!accessToken) return;
@@ -72,24 +95,38 @@ export default function PropertiesPage() {
 
     try {
       const report = await analyzeAddress(property.address, accessToken);
+      // Update the saved record too, so the list reflects the refreshed scores.
+      await saveProperty(report, accessToken);
       saveReport(report);
       router.push("/report");
     } catch (err) {
+      if (isExpiredSession(err)) {
+        await signInAgain();
+        return;
+      }
       setError(err instanceof Error ? err.message : "Re-run failed.");
       setRerunningId(null);
     }
   }
 
-  async function handleDelete(propertyId: number) {
-    if (!accessToken) return;
+  async function handleDelete(property: SavedPropertyListItem) {
+    if (!accessToken || deletingId !== null) return;
+    if (!window.confirm(`Delete the saved analysis for ${property.address}?`)) return;
 
+    setDeletingId(property.id);
     setError(null);
 
     try {
-      await deleteProperty(propertyId, accessToken);
-      setProperties((prev) => prev.filter((p) => p.id !== propertyId));
-    } catch {
+      await deleteProperty(property.id, accessToken);
+      setProperties((prev) => prev.filter((p) => p.id !== property.id));
+    } catch (err) {
+      if (isExpiredSession(err)) {
+        await signInAgain();
+        return;
+      }
       setError("Failed to delete property.");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -106,11 +143,20 @@ export default function PropertiesPage() {
         </p>
       )}
 
+      {missingToken && (
+        <div className="mt-8 rounded-md border border-amber-200 bg-amber-50 px-6 py-6 text-sm text-amber-950">
+          We couldn&apos;t connect your account to the analysis service.{" "}
+          <button type="button" onClick={signInAgain} className="font-semibold underline">
+            Sign in again
+          </button>
+        </div>
+      )}
+
       {loading && (
         <p className="mt-8 text-sm text-zinc-500">Loading saved properties...</p>
       )}
 
-      {!loading && properties.length === 0 && (
+      {!loading && !missingToken && !error && properties.length === 0 && (
         <div className="mt-8 rounded-md border border-zinc-200 bg-zinc-50 px-6 py-8 text-center">
           <p className="text-zinc-600">No saved properties yet.</p>
           <Link
@@ -132,8 +178,11 @@ export default function PropertiesPage() {
               <div>
                 <p className="font-semibold text-brand-primary">{property.address}</p>
                 <p className="mt-1 text-sm text-zinc-500">
-                  Last updated {formatDate(property.updated_at)} · Score {property.overall_risk_score} ·{" "}
-                  {property.verdict}
+                  Last updated {formatDate(property.updated_at)} ·{" "}
+                  {property.overall_risk_score != null
+                    ? `Score ${property.overall_risk_score}`
+                    : "Score unavailable"}{" "}
+                  · {property.verdict ?? "Verdict unavailable"}
                 </p>
               </div>
 
@@ -146,13 +195,14 @@ export default function PropertiesPage() {
                 >
                   {rerunningId === property.id ? "Re-running..." : "Re-run Analysis"}
                 </button>
-                <DownloadPdfButton propertyId={property.id} existingPdfUrl={property.pdf_url} />
+                <DownloadPdfButton propertyId={property.id} />
                 <button
                   type="button"
-                  onClick={() => handleDelete(property.id)}
-                  className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+                  onClick={() => handleDelete(property)}
+                  disabled={deletingId === property.id}
+                  className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-60"
                 >
-                  Delete
+                  {deletingId === property.id ? "Deleting..." : "Delete"}
                 </button>
               </div>
             </li>

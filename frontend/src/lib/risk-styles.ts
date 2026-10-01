@@ -40,3 +40,11 @@ export const verdictStyles: Record<
     explanation: "Extreme cumulative climate exposure detected",
   },
 };
+
+/** Same thresholds as backend `score_to_severity`; used if a report lacks a severity. */
+export function severityFromScore(score: number): Severity {
+  if (score <= 25) return "Low";
+  if (score <= 50) return "Moderate";
+  if (score <= 75) return "High";
+  return "Extreme";
+}

@@ -1,22 +1,40 @@
-import type { ClimateRiskReport } from "@/types/risk";
+import type { ClimateRiskReport, Verdict } from "@/types/risk";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+
+/** Error carrying the HTTP status so callers can react to 401 (expired session). */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+async function apiError(response: Response, fallback: string): Promise<ApiError> {
+  let detail: string | undefined;
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    if (typeof body.detail === "string") detail = body.detail;
+  } catch {
+    // body was not JSON
+  }
+  if (response.status === 401) {
+    return new ApiError("Your session has expired. Please sign in again.", 401);
+  }
+  return new ApiError(detail || fallback, response.status);
+}
 
 export interface SavedPropertyListItem {
   id: number;
   address: string;
   latitude: number;
   longitude: number;
-  overall_risk_score: number;
-  verdict: string;
-  pdf_url: string | null;
+  overall_risk_score: number | null;
+  verdict: Verdict | null;
   updated_at: string;
-}
-
-export interface UserProfile {
-  id: number;
-  email: string;
-  name: string | null;
 }
 
 async function authFetch(
@@ -58,14 +76,7 @@ export async function analyzeAddress(
   });
 
   if (!response.ok) {
-    let detail: string | undefined;
-    try {
-      const error = (await response.json()) as { detail?: string };
-      detail = error.detail;
-    } catch {
-      // response body was not JSON; fall through to status-based error
-    }
-    throw new Error(detail || `API error: ${response.statusText}`);
+    throw await apiError(response, "Risk analysis failed. Please try again.");
   }
 
   return (await response.json()) as ClimateRiskReport;
@@ -81,14 +92,7 @@ export async function saveProperty(
   });
 
   if (!response.ok) {
-    let detail: string | undefined;
-    try {
-      const error = (await response.json()) as { detail?: string };
-      detail = error.detail;
-    } catch {
-      // ignore
-    }
-    throw new Error(detail || "Failed to save property");
+    throw await apiError(response, "Failed to save property");
   }
 }
 
@@ -96,7 +100,7 @@ export async function listProperties(accessToken: string): Promise<SavedProperty
   const response = await authFetch("/properties", accessToken);
 
   if (!response.ok) {
-    throw new Error("Failed to load properties");
+    throw await apiError(response, "Failed to load properties");
   }
 
   return (await response.json()) as SavedPropertyListItem[];
@@ -108,18 +112,8 @@ export async function deleteProperty(propertyId: number, accessToken: string): P
   });
 
   if (!response.ok) {
-    throw new Error("Failed to delete property");
+    throw await apiError(response, "Failed to delete property");
   }
-}
-
-export async function getCurrentUser(accessToken: string): Promise<UserProfile> {
-  const response = await authFetch("/auth/me", accessToken);
-
-  if (!response.ok) {
-    throw new Error("Failed to load user profile");
-  }
-
-  return (await response.json()) as UserProfile;
 }
 
 export async function generatePropertyPdf(
@@ -131,7 +125,7 @@ export async function generatePropertyPdf(
   });
 
   if (!response.ok) {
-    throw new Error("Failed to generate PDF");
+    throw await apiError(response, "Failed to generate PDF");
   }
 
   const data = (await response.json()) as { pdf_url: string };

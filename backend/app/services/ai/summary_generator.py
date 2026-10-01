@@ -1,16 +1,29 @@
+from functools import lru_cache
+from typing import Optional
+
 from openai import AsyncOpenAI
 
 from app.core.config import settings
 from app.schemas.risk import ClimateRiskReport
 from app.services.ai.prompt_builder import build_risk_prompt
 
-client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+# The summary is best-effort; don't let a slow model hold up the whole analysis.
+OPENAI_TIMEOUT_SECONDS = 20.0
 
 
-async def generate_risk_summary(report: ClimateRiskReport) -> str:
+@lru_cache(maxsize=1)
+def _client() -> AsyncOpenAI:
+    return AsyncOpenAI(
+        api_key=settings.OPENAI_API_KEY,
+        timeout=OPENAI_TIMEOUT_SECONDS,
+        max_retries=1,
+    )
+
+
+async def generate_risk_summary(report: ClimateRiskReport) -> Optional[str]:
     system_prompt, user_prompt = build_risk_prompt(report)
 
-    response = await client.chat.completions.create(
+    response = await _client().chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": system_prompt},

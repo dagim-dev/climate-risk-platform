@@ -3,11 +3,10 @@
 import { useRouter } from "next/navigation";
 import type { ClimateRiskReport } from "@/types/risk";
 import { AISummary } from "@/components/dashboard/AISummary";
-import { PropertyMap } from "@/components/dashboard/PropertyMap";
 import { RiskTrendChart } from "@/components/dashboard/RiskTrendChart";
 import { SavePropertyButton } from "@/components/dashboard/SavePropertyButton";
 import { ScoreCard } from "@/components/dashboard/ScoreCard";
-import { VerdictBadge } from "@/components/dashboard/VerdictBadge";
+import { VerdictBadge, unavailableHazardNames } from "@/components/dashboard/VerdictBadge";
 import { saveReport } from "@/lib/report-storage";
 
 interface RiskDashboardProps {
@@ -50,18 +49,17 @@ export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) 
         </p>
       </header>
 
-      <VerdictBadge verdict={report.verdict} overallScore={report.overall_risk_score} />
+      <VerdictBadge
+        verdict={report.verdict}
+        overallScore={report.overall_risk_score}
+        overallStatus={report.overall_status}
+        unavailableHazards={unavailableHazardNames(report)}
+        verdictReason={report.verdict_reason}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {hazards.map(({ key, hazard, icon, data }) => (
-          <ScoreCard
-            key={key}
-            hazard={hazard}
-            icon={icon}
-            score={data.score}
-            severity={data.severity}
-            factors={data.primary_factors}
-          />
+          <ScoreCard key={key} hazard={hazard} icon={icon} data={data} />
         ))}
       </div>
 
@@ -71,15 +69,8 @@ export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) 
         <RiskTrendChart trend={report.historical_trend} />
       )}
 
-      <PropertyMap
-        latitude={report.latitude}
-        longitude={report.longitude}
-        address={report.address}
-        verdict={report.verdict}
-        overallScore={report.overall_risk_score}
-      />
-
-      <SavePropertyButton report={report} />
+      {/* Keyed so "Property Saved" resets when a different report is shown. */}
+      <SavePropertyButton key={report.generated_at} report={report} />
 
       <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-between">
         <button
@@ -99,7 +90,7 @@ export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) 
       </div>
 
       <footer className="border-t border-zinc-200 pt-4 text-center text-xs text-zinc-500">
-        Risk data sourced from NOAA, FEMA NFHL, and USGS.
+        Risk data sourced from NOAA, FEMA NFHL, USFS, and NIFC.
       </footer>
     </div>
   );

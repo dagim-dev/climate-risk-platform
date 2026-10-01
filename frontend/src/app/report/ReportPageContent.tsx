@@ -1,15 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { VerdictBadge } from "@/components/dashboard/VerdictBadge";
+import { VerdictBadge, unavailableHazardNames } from "@/components/dashboard/VerdictBadge";
 import { RiskTrendChart } from "@/components/dashboard/RiskTrendChart";
-import {
-  loadReportFromSession,
-  loadReportFromUrlParam,
-} from "@/lib/report-storage";
-import { severityTextClass } from "@/lib/risk-styles";
+import { requestDashboardRestore, useStoredReport } from "@/lib/report-storage";
+import { severityFromScore, severityTextClass } from "@/lib/risk-styles";
 import type { Severity } from "@/types/risk";
 
 function formatDate(iso: string): string {
@@ -31,15 +26,26 @@ const HAZARDS = [
 function ReportScoreRow({
   label,
   icon,
-  score,
-  severity,
+  data,
 }: {
   label: string;
   icon: string;
-  score: number;
-  severity: Severity;
+  data: { score: number | null; severity: Severity | null; status?: string; unavailable_reason?: string | null };
 }) {
-  const clampedScore = Math.max(0, Math.min(100, score));
+  if (data.status === "unavailable" || data.score === null) {
+    return (
+      <div className="report-section rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <div className="flex items-center gap-2">
+          <span aria-hidden="true">{icon}</span>
+          <span className="font-semibold text-brand-primary">{label}</span>
+        </div>
+        <p className="mt-2 text-sm font-medium text-amber-950">Data unavailable</p>
+      </div>
+    );
+  }
+
+  const clampedScore = Math.max(0, Math.min(100, data.score));
+  const severity: Severity = data.severity ?? severityFromScore(clampedScore);
 
   return (
     <div className="report-section rounded-lg border border-zinc-200 p-4">
@@ -63,18 +69,7 @@ function ReportScoreRow({
 }
 
 export function ReportPageContent() {
-  const searchParams = useSearchParams();
-  const report = useMemo(() => {
-    const fromUrl = searchParams.get("report");
-    if (fromUrl) {
-      const parsed = loadReportFromUrlParam(fromUrl);
-      if (parsed) {
-        return parsed;
-      }
-    }
-
-    return loadReportFromSession();
-  }, [searchParams]);
+  const report = useStoredReport();
 
   if (!report) {
     return (
@@ -113,26 +108,25 @@ export function ReportPageContent() {
         </button>
         <Link
           href="/"
+          onClick={requestDashboardRestore}
           className="inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
         >
           Back to Dashboard
         </Link>
       </div>
 
-      <VerdictBadge verdict={report.verdict} overallScore={report.overall_risk_score} />
+      <VerdictBadge
+        verdict={report.verdict}
+        overallScore={report.overall_risk_score}
+        overallStatus={report.overall_status}
+        unavailableHazards={unavailableHazardNames(report)}
+        verdictReason={report.verdict_reason}
+      />
 
       <section className="report-score-grid grid grid-cols-1 gap-4 sm:grid-cols-2">
         {HAZARDS.map(({ label, icon, field }) => {
           const data = report[field];
-          return (
-            <ReportScoreRow
-              key={field}
-              label={label}
-              icon={icon}
-              score={data.score}
-              severity={data.severity}
-            />
-          );
+          return <ReportScoreRow key={field} label={label} icon={icon} data={data} />;
         })}
       </section>
 
@@ -150,7 +144,7 @@ export function ReportPageContent() {
       )}
 
       <footer className="report-section border-t border-zinc-200 pt-4 text-center text-xs text-zinc-500">
-        Risk data sourced from NOAA, FEMA NFHL, and USGS.
+        Risk data sourced from NOAA, FEMA NFHL, USFS, and NIFC.
       </footer>
     </div>
   );

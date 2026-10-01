@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +17,6 @@ from app.schemas.pdf import PdfDownloadResponse
 from app.schemas.property import PropertyCreate, PropertyListItem, PropertyResponse
 from app.schemas.risk import ClimateRiskReport
 from app.services.pdf.generator import generate_report_pdf
-from app.services.pdf.storage import load_pdf, save_pdf
 
 router = APIRouter(prefix="/properties", tags=["properties"])
 
@@ -28,9 +28,8 @@ def _to_list_item(property_: Property) -> PropertyListItem:
         address=property_.address,
         latitude=property_.latitude,
         longitude=property_.longitude,
-        overall_risk_score=report.get("overall_risk_score", 0),
-        verdict=report.get("verdict", "Caution"),
-        pdf_url=property_.pdf_url,
+        overall_risk_score=report.get("overall_risk_score"),
+        verdict=report.get("verdict"),
         updated_at=property_.updated_at,
     )
 
@@ -42,7 +41,6 @@ def _to_response(property_: Property, report: ClimateRiskReport) -> PropertyResp
         latitude=property_.latitude,
         longitude=property_.longitude,
         report_data=report,
-        pdf_url=property_.pdf_url,
         created_at=property_.created_at,
         updated_at=property_.updated_at,
     )
@@ -75,7 +73,6 @@ async def create_property(
         property_.latitude = report.latitude
         property_.longitude = report.longitude
         property_.report_data = report.model_dump()
-        property_.pdf_url = None
     else:
         property_ = Property(
             user_id=current_user.id,
@@ -122,29 +119,31 @@ async def generate_property_pdf(
     if property_ is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found")
 
-    report = ClimateRiskReport.model_validate(property_.report_data)
-    pdf_bytes = generate_report_pdf(report)
-    save_pdf(property_id, pdf_bytes)
-
-    signed_url = _build_signed_pdf_url(property_id, current_user.id)
-    property_.pdf_url = signed_url
-    await db.commit()
-
-    return PdfDownloadResponse(pdf_url=signed_url)
+    # The PDF itself is rendered on download, not here, so it's never stale on disk.
+    return PdfDownloadResponse(pdf_url=_build_signed_pdf_url(property_id, current_user.id))
 
 
 @router.get("/{property_id}/pdf/download")
 async def download_property_pdf(
     property_id: int,
     token: str = Query(..., min_length=1),
+    db: AsyncSession = Depends(get_db),
 ):
     user_id = verify_pdf_download_token(token, property_id)
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid or expired download link")
 
-    pdf_bytes = load_pdf(property_id)
-    if pdf_bytes is None:
+    # A still-valid link must stop working once the property is deleted.
+    owned = await db.execute(
+        select(Property).where(Property.id == property_id, Property.user_id == user_id)
+    )
+    property_ = owned.scalar_one_or_none()
+    if property_ is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PDF not found")
+
+    report = ClimateRiskReport.model_validate(property_.report_data)
+    # PDF rendering is CPU-bound and synchronous; keep it off the event loop.
+    pdf_bytes = await run_in_threadpool(generate_report_pdf, report)
 
     return Response(
         content=pdf_bytes,

@@ -1,15 +1,19 @@
 const dataSources = [
   {
     name: "NOAA",
-    detail: "Weather observations, extreme heat records, and hurricane history.",
+    detail: "Annual counts of days at or above 90°F, and hurricane track history.",
   },
   {
     name: "FEMA NFHL",
-    detail: "Official flood-zone and flood-hazard information.",
+    detail: "Official flood zones, queried from FEMA or its Esri Living Atlas mirror.",
   },
   {
-    name: "USGS / NIFC fire perimeters",
-    detail: "Historical wildfire perimeter counts near the property.",
+    name: "USFS Wildfire Hazard Potential",
+    detail: "2023 wildfire hazard classes for the land within 2 km of the property.",
+  },
+  {
+    name: "NIFC fire perimeters",
+    detail: "Mapped wildfire perimeters within 50 km over the last 20 years.",
   },
 ] as const;
 
@@ -35,7 +39,7 @@ export default function AboutPage() {
       <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
         <h2 className="text-3xl font-semibold text-brand-primary">Data sources</h2>
         <p className="mt-4 max-w-3xl leading-7 text-zinc-600">
-          Scores are built from NOAA, FEMA, and USGS/NIFC public datasets.
+          Scores are built from NOAA, FEMA, USFS, and NIFC public datasets.
           NASA EarthData is not queried today.
         </p>
         <div className="mt-8 grid gap-5 sm:grid-cols-2">

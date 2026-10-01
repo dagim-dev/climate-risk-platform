@@ -19,14 +19,14 @@ choose to go live.
 Do not treat those hostnames as a running product. The GitHub Actions
 deploy workflow does **not** run on push to `main`.
 
-## PDF storage (local-only today)
+## PDF generation (regenerated on demand)
 
-Generated PDFs are written to `PDF_STORAGE_DIR` on the backend filesystem
-(`storage/pdfs` by default) and downloaded via short-lived JWT URLs. Cloud
-Run disks are ephemeral, so PDFs will not survive new revisions.
-
-**Before a real Cloud Run deploy:** move PDF storage to GCS or S3, or
-document that PDF downloads are session-local and may disappear.
+PDFs are rendered from the saved report on every download request and
+streamed straight back, rather than being written to the backend
+filesystem. This avoids any dependency on Cloud Run's disk, which is
+ephemeral and would otherwise lose PDFs across revisions or scale-to-zero.
+The signed JWT download URL still expires after
+`PDF_SIGNED_URL_EXPIRE_MINUTES`.
 
 ## Public API posture
 
@@ -86,6 +86,14 @@ in Google Secret Manager.
 
 **Never commit secrets to the repository.** Use each provider's secret manager.
 
+`backend/.env` is for local development only and is gitignored — it should
+never be committed, and its keys should never be reused for production.
+Even locally, treat any key placed in it as sensitive: don't paste it into
+chat, logs, or screenshots, and rotate a key immediately if it's ever
+pasted somewhere it shouldn't be (a doc, a ticket, a public repo). None of
+the values below belong in an `.env` file in production — they're injected
+as environment variables by the secret manager instead.
+
 ### Backend secrets (Google Secret Manager)
 
 | Variable | Description |
@@ -99,6 +107,11 @@ in Google Secret Manager.
 | `CORS_ORIGINS` | `https://climaterisk.io,https://www.climaterisk.io` |
 | `ENVIRONMENT` | `production` |
 | `APP_VERSION` | `2.0.0` |
+| `API_BASE_URL` | Public backend URL, used in signed PDF links (e.g. `https://api.climaterisk.io`) |
+
+Run migrations against the production database before (or as part of) each deploy:
+`alembic upgrade head` from `backend/` with `DATABASE_URL` pointing at production.
+`deploy.yml` does not do this yet.
 
 Create secrets:
 
@@ -117,9 +130,8 @@ Set in Vercel Dashboard → Project → Settings → Environment Variables (Prod
 | Variable | Value |
 |----------|-------|
 | `NEXT_PUBLIC_API_URL` | `https://api.climaterisk.io` |
-| `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox public token for the property map |
 | `AUTH_SECRET` | NextAuth secret |
-| `NEXTAUTH_URL` | Production frontend origin |
+| `AUTH_URL` | Production frontend origin |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth app credentials |
 
 Or via CLI:
@@ -127,7 +139,7 @@ Or via CLI:
 ```bash
 cd frontend
 vercel env add NEXT_PUBLIC_API_URL production
-vercel env add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY production
+vercel env add AUTH_SECRET production
 ```
 
 ### CORS configuration

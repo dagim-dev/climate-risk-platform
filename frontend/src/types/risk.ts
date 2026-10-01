@@ -1,19 +1,31 @@
 export type Severity = "Low" | "Moderate" | "High" | "Extreme";
 export type Verdict = "Go" | "Caution" | "Avoid";
+export type HazardStatus = "ok" | "stale" | "unavailable";
+export type OverallStatus = "complete" | "partial" | "unavailable";
 
 export interface HazardScore {
-  score: number;
-  severity: Severity;
+  status?: HazardStatus;
+  score: number | null;
+  severity: Severity | null;
   confidence: string;
   primary_factors: string[];
+  as_of?: string | null;
+  unavailable_reason?: string | null;
+}
+
+export interface SourceStatus {
+  status: HazardStatus;
+  as_of?: string | null;
+  error?: string | null;
 }
 
 export interface TrendPoint {
   year: number;
-  flood_score: number;
-  hurricane_score: number;
-  heat_score: number;
-  wildfire_score: number;
+  // null when that hazard could not be assessed.
+  flood_score: number | null;
+  hurricane_score: number | null;
+  heat_score: number | null;
+  wildfire_score: number | null;
   is_projection: boolean;
 }
 
@@ -25,9 +37,12 @@ export interface ClimateRiskReport {
   hurricane_risk: HazardScore;
   heat_risk: HazardScore;
   wildfire_risk: HazardScore;
-  overall_risk_score: number;
-  verdict: Verdict;
-  ai_summary?: string;
+  overall_risk_score: number | null;
+  overall_status?: OverallStatus;
+  verdict: Verdict | null;
+  verdict_reason?: string | null;
+  sources?: Record<string, SourceStatus>;
+  ai_summary?: string | null;
   generated_at: string;
   historical_trend?: TrendPoint[];
 }

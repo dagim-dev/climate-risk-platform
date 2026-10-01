@@ -15,8 +15,14 @@ def test_hash_and_verify_password():
 
 def test_access_token_round_trip():
     token = create_access_token("42")
-    assert decode_access_token(token) == "42"
+    assert decode_access_token(token) == 42
 
 
 def test_decode_invalid_token_returns_none():
     assert decode_access_token("not-a-valid-token") is None
+
+
+def test_pdf_download_token_is_not_an_access_token():
+    from app.core.security import create_pdf_download_token
+
+    assert decode_access_token(create_pdf_download_token(1, 2)) is None

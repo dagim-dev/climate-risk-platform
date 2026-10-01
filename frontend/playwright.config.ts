@@ -20,7 +20,7 @@ export default defineConfig({
     env: {
       E2E_AUTH_BYPASS: "true",
       AUTH_SECRET: "e2e-test-secret",
-      NEXTAUTH_URL: "http://localhost:3000",
+      AUTH_URL: "http://localhost:3000",
       NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
     },
   },

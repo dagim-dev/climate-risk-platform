@@ -2,7 +2,24 @@ import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+// Server-side calls (this file runs in the Next.js server) may need a different host than
+// the browser, e.g. the compose service name inside Docker.
+const API_BASE = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL;
+
+// Must not outlive the backend JWT (JWT_EXPIRE_MINUTES, 7 days by default).
+const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+
+/** Expiry (ms since epoch) of the backend JWT, read from its payload; null if unreadable. */
+function backendTokenExpiry(accessToken: string): number | null {
+  try {
+    const payload = JSON.parse(
+      Buffer.from(accessToken.split(".")[1], "base64url").toString("utf8"),
+    ) as { exp?: number };
+    return typeof payload.exp === "number" ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
 
 export const authConfig: NextAuthConfig = {
   providers: [
@@ -52,40 +69,50 @@ export const authConfig: NextAuthConfig = {
   },
   session: {
     strategy: "jwt",
+    maxAge: SESSION_MAX_AGE_SECONDS,
   },
-  secret: process.env.AUTH_SECRET,
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider === "google" && API_BASE) {
-        if (!account.id_token) {
-          return false;
-        }
-
-        const response = await fetch(`${API_BASE}/api/v1/auth/oauth`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id_token: account.id_token,
-          }),
-        });
-
-        if (!response.ok) {
-          return false;
-        }
-
-        const data = (await response.json()) as {
-          user: { id: number };
-          access_token: string;
-        };
-        user.id = String(data.user.id);
-        user.accessToken = data.access_token;
+      if (account?.provider !== "google") {
+        return true;
       }
+      // Without a backend token the account can't use saved properties or PDFs.
+      if (!API_BASE || !account.id_token) {
+        return false;
+      }
+
+      const response = await fetch(`${API_BASE}/api/v1/auth/oauth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_token: account.id_token,
+        }),
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const data = (await response.json()) as {
+        user: { id: number };
+        access_token: string;
+      };
+      user.id = String(data.user.id);
+      user.accessToken = data.access_token;
       return true;
     },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.accessToken = user.accessToken;
+        token.accessTokenExpires = user.accessToken
+          ? backendTokenExpiry(user.accessToken)
+          : null;
+      }
+      // End the session once the backend token has expired instead of leaving the
+      // user "signed in" with every API call failing.
+      if (typeof token.accessTokenExpires === "number" && Date.now() >= token.accessTokenExpires) {
+        return null;
       }
       return token;
     },

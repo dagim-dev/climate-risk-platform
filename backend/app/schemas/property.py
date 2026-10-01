@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.risk import ClimateRiskReport
+from app.schemas.risk import ClimateRiskReport, Verdict
 
 
 class PropertyCreate(BaseModel):
@@ -16,12 +16,10 @@ class PropertyResponse(BaseModel):
     latitude: float
     longitude: float
     report_data: ClimateRiskReport
-    pdf_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PropertyListItem(BaseModel):
@@ -29,10 +27,8 @@ class PropertyListItem(BaseModel):
     address: str
     latitude: float
     longitude: float
-    overall_risk_score: int = Field(..., ge=0, le=100)
-    verdict: str
-    pdf_url: Optional[str] = None
+    overall_risk_score: Optional[int] = Field(default=None, ge=0, le=100)
+    verdict: Optional[Verdict] = None
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

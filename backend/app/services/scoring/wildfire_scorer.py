@@ -1,43 +1,39 @@
 from __future__ import annotations
 
+from typing import Dict, Tuple
+
 from app.schemas.risk import HazardScore
-from app.services.climate.wildfire_data import WildfireData
+from app.services.climate.wildfire_data import WHP_BOX_KM, WildfireData
 from app.services.scoring.helpers import clamp_score, score_to_severity
 
-SEARCH_RADIUS_KM = 50.0
-SEARCH_AREA_KM2 = 3.14159 * SEARCH_RADIUS_KM * SEARCH_RADIUS_KM
+WHP_BURNABLE_CLASSES = (1, 2, 3, 4, 5)
+WHP_WATER_CLASS = 7
+WHP_CLASS_WEIGHTS = {1: 10.0, 2: 25.0, 3: 50.0, 4: 75.0, 5: 100.0}
+WHP_CLASS_LABELS = {1: "Very Low", 2: "Low", 3: "Moderate", 4: "High", 5: "Very High"}
 
-WUI_BONUSES = {
-    "High-WUI": 20.0,
-    "Intermix": 15.0,
-    "Interface": 10.0,
-    "Non-WUI": 0.0,
-}
-
-DROUGHT_ZONE_MULTIPLIERS = {
-    "Western": 1.2,
-    "Southern Plains": 1.15,
-    "Central": 1.05,
-    "Eastern": 1.0,
-    "Outside CONUS": 1.0,
-    "Unknown": 1.0,
-}
+# Below this share of burnable land around the property, hazard is scaled down proportionally:
+# a dense urban core with a few vegetated pixels is not wildland-urban interface.
+FULL_EXPOSURE_BURNABLE_SHARE = 0.3
+MAX_HISTORY_BONUS = 10.0
+FIRES_PER_HISTORY_POINT = 10.0
 
 
-def _fire_density_per_100km2(fire_count: int) -> float:
-    return (fire_count / SEARCH_AREA_KM2) * 100.0
+def whp_exposure(class_shares: Dict[int, float]) -> Tuple[float, float, float]:
+    """Return (burnable share of land, mean hazard weight of burnable land, high+very-high share of land)."""
+    land = sum(share for whp_class, share in class_shares.items() if whp_class != WHP_WATER_CLASS)
+    if land <= 0:
+        return 0.0, 0.0, 0.0
 
+    burnable = sum(class_shares.get(whp_class, 0.0) for whp_class in WHP_BURNABLE_CLASSES)
+    if burnable <= 0:
+        return 0.0, 0.0, 0.0
 
-def _estimated_nearest_fire_km(wildfire_data: WildfireData) -> float:
-    if wildfire_data.fire_count_20_years == 0:
-        return 999.0
-    if wildfire_data.wui_classification == "High-WUI":
-        return 3.0
-    if wildfire_data.wui_classification == "Intermix":
-        return 12.0
-    if wildfire_data.wui_classification == "Interface":
-        return 25.0
-    return 40.0
+    hazard_mean = (
+        sum(class_shares.get(whp_class, 0.0) * weight for whp_class, weight in WHP_CLASS_WEIGHTS.items())
+        / burnable
+    )
+    high_share = (class_shares.get(4, 0.0) + class_shares.get(5, 0.0)) / land
+    return burnable / land, hazard_mean, high_share
 
 
 def score_wildfire_risk(
@@ -45,44 +41,48 @@ def score_wildfire_risk(
     latitude: float,
     longitude: float,
 ) -> HazardScore:
-    del latitude, longitude  # reserved for future spatial refinements
+    del latitude, longitude  # location is already encoded in the WHP sample
 
     factors: list[str] = []
-    fire_count = wildfire_data.fire_count_20_years
+    burnable_share, hazard_mean, high_share = whp_exposure(wildfire_data.whp_class_shares)
 
-    density = _fire_density_per_100km2(fire_count)
-    score = min(100.0, density * 90.0)
-    if fire_count > 0:
-        factors.append(f"{fire_count} wildfires within 50 km over last 20 years")
+    score = hazard_mean * min(1.0, burnable_share / FULL_EXPOSURE_BURNABLE_SHARE)
 
-    wui_bonus = WUI_BONUSES.get(wildfire_data.wui_classification, 0.0)
-    if wui_bonus > 0:
-        score += wui_bonus
+    if high_share > 0:
         factors.append(
-            f"Inferred WUI class ({wildfire_data.wui_classification}) from nearby fire density, not an official WUI map"
+            f"{high_share:.0%} of land within {WHP_BOX_KM:.0f} km rated High or Very High "
+            "wildfire hazard potential (USFS 2023)"
         )
-
-    zone_multiplier = DROUGHT_ZONE_MULTIPLIERS.get(wildfire_data.fire_weather_zone, 1.0)
-    if zone_multiplier > 1.0:
-        score *= zone_multiplier
+    elif burnable_share > 0:
+        dominant = max(
+            WHP_BURNABLE_CLASSES,
+            key=lambda whp_class: wildfire_data.whp_class_shares.get(whp_class, 0.0),
+        )
         factors.append(
-            f"Inferred fire-weather region ({wildfire_data.fire_weather_zone}) from lat/lng"
+            f"{burnable_share:.0%} of land within {WHP_BOX_KM:.0f} km is burnable, mostly "
+            f"{WHP_CLASS_LABELS[dominant]} wildfire hazard potential (USFS 2023)"
         )
-
-    nearest_fire_km = _estimated_nearest_fire_km(wildfire_data)
-    if nearest_fire_km <= 5.0:
-        score += 18.0
-        factors.append(f"Recent fire activity within {nearest_fire_km:.0f} km")
-
-    if fire_count > 0:
-        confidence = "High" if fire_count >= 10 else "Medium"
     else:
+        factors.append(
+            f"No burnable wildland within {WHP_BOX_KM:.0f} km (USFS Wildfire Hazard Potential 2023)"
+        )
+
+    fire_count = wildfire_data.fire_count_20_years
+    if fire_count is None:
+        factors.append("NIFC fire perimeter history unavailable; score uses USFS hazard potential only")
+    elif fire_count > 0:
+        score += min(MAX_HISTORY_BONUS, fire_count / FIRES_PER_HISTORY_POINT)
+        factors.append(f"{fire_count} mapped wildfire perimeters within 50 km in the last 20 years (NIFC)")
+
+    if not wildfire_data.whp_class_shares:
         confidence = "Low"
+    else:
+        confidence = "High" if fire_count is not None else "Medium"
 
     final_score = clamp_score(score)
     return HazardScore(
         score=final_score,
         severity=score_to_severity(final_score),
         confidence=confidence,
-        primary_factors=factors[:3] if factors else ["No significant wildfire history nearby"],
+        primary_factors=factors[:3],
     )

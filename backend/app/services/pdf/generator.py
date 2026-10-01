@@ -41,8 +41,8 @@ def render_report_html(report: ClimateRiskReport) -> str:
             {
                 "label": hazard["label"],
                 "icon": hazard["icon"],
-                "score": data.score,
-                "severity": data.severity,
+                "score": data.score if data.score is not None else "N/A",
+                "severity": data.severity or "Unavailable",
             }
         )
 

@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from app.schemas.risk import HazardScore
-from app.services.climate.heat_data import HeatRiskData
+from app.services.climate.heat_data import HOT_DAY_THRESHOLD_F, HeatRiskData
 from app.services.scoring.helpers import (
     clamp_score,
     score_to_severity,
     urban_heat_island_bonus,
 )
 
-MAX_EXTREME_HEAT_DAYS = 90.0
-PROJECTION_BASELINE_C = 2.0
-PROJECTION_POINTS_PER_DEGREE = 5.0
+# Days/year at or above HOT_DAY_THRESHOLD_F that map to a full-scale score (Phoenix is ~180).
+MAX_EXTREME_HEAT_DAYS = 120.0
+MAX_TREND_BONUS = 10.0
+TREND_POINTS_PER_DAY_PER_DECADE = 0.5
 
 
 def score_heat_risk(
@@ -23,26 +24,25 @@ def score_heat_risk(
     extreme_days = heat_data.extreme_heat_days_per_year
     score = min(100.0, (extreme_days / MAX_EXTREME_HEAT_DAYS) * 100.0)
     if extreme_days > 0:
-        factors.append(f"{extreme_days:.0f} extreme heat days per year (≥95°F)")
+        factors.append(f"{extreme_days:.0f} days per year at or above {HOT_DAY_THRESHOLD_F}°F (NOAA)")
 
     uhi_bonus = urban_heat_island_bonus(latitude, longitude)
     if uhi_bonus > 0:
         score += uhi_bonus
         factors.append("Urban heat island effect in major metro area (+8 points)")
 
-    projected_delta = heat_data.projected_2050_delta_c
-    if projected_delta > PROJECTION_BASELINE_C:
-        projection_bonus = (projected_delta - PROJECTION_BASELINE_C) * PROJECTION_POINTS_PER_DEGREE
-        score += projection_bonus
-        factors.append(
-            f"Projected 2050 warming delta {projected_delta:.1f}°C above baseline"
-        )
-
+    trend = heat_data.hot_days_trend_per_decade
+    if trend > 0:
+        score += min(MAX_TREND_BONUS, trend * TREND_POINTS_PER_DAY_PER_DECADE)
     if heat_data.trend_direction == "increasing":
-        score += 5.0
-        factors.append("Increasing extreme heat trend over last 30 years")
+        span = (
+            f"{heat_data.first_year}–{heat_data.last_year}"
+            if heat_data.first_year and heat_data.last_year
+            else "the observed record"
+        )
+        factors.append(f"Hot days rising by about {trend:.0f} per decade over {span} (NOAA)")
 
-    if extreme_days > 0 or projected_delta > 0:
+    if extreme_days > 0:
         confidence = "High" if extreme_days >= 30 else "Medium"
     else:
         confidence = "Low"
