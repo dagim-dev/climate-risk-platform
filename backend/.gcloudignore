@@ -1,0 +1,13 @@
+.gcloudignore
+.git
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+htmlcov
+.env
+.env.*
+.DS_Store
+storage/
+tests/
