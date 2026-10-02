@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +16,8 @@ _env = Environment(
     loader=FileSystemLoader(str(_TEMPLATE_DIR)),
     autoescape=select_autoescape(["html"]),
 )
+# Same pin as frontend/src/app/icon.svg; keep the two in sync.
+_LOGO_SVG_B64 = base64.b64encode((_TEMPLATE_DIR / "logo.svg").read_bytes()).decode("ascii")
 
 HAZARDS = [
     {"field": "flood_risk", "label": "Flood", "icon": "🌊"},
@@ -50,6 +53,7 @@ def render_report_html(report: ClimateRiskReport) -> str:
         report=report,
         hazards=hazards,
         generated_at=_format_generated_at(report.generated_at),
+        logo_svg_b64=_LOGO_SVG_B64,
     )
 
 

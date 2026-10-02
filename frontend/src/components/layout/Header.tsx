@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 
 import { AuthNav } from "@/components/auth/AuthNav";
+import { Logo } from "@/components/layout/Logo";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -17,8 +18,8 @@ export function Header() {
   return (
     <header className="border-b border-brand-primary/10 bg-brand-primary text-white">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="text-xl font-semibold tracking-tight" onClick={() => setMenuOpen(false)}>
-          ClimateRisk
+        <Link href="/" aria-label="ClimateRisk home" onClick={() => setMenuOpen(false)}>
+          <Logo />
         </Link>
 
         <nav className="hidden items-center gap-6 sm:flex" aria-label="Main">

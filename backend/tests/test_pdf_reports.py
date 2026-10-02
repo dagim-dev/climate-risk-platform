@@ -53,6 +53,12 @@ def test_render_report_html_includes_address():
     assert "Caution" in html
 
 
+def test_render_report_html_includes_logo():
+    html = render_report_html(_sample_report())
+    assert 'src="data:image/svg+xml;base64,' in html
+    assert "Climate<strong>Risk</strong>" in html
+
+
 def test_generate_report_pdf_returns_pdf_bytes():
     pdf_bytes = generate_report_pdf(_sample_report())
     assert pdf_bytes.startswith(b"%PDF")
