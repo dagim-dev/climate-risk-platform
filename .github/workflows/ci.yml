@@ -32,7 +32,7 @@ jobs:
           node-version: '20'
       - run: cd frontend && npm ci
       - run: cd frontend && npm run lint
-      - run: cd frontend && npx tsc --noEmit
+      - run: cd frontend && npx next typegen && npx tsc --noEmit
 
   playwright:
     runs-on: ubuntu-latest
