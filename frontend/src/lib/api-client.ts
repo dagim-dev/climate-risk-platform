@@ -56,6 +56,15 @@ async function authFetch(
   });
 }
 
+/**
+ * Ping the backend so an idle Cloud Run instance starts booting while the user
+ * is still typing. Fire-and-forget: failures are ignored.
+ */
+export function warmUpBackend(): void {
+  if (!API_BASE) return;
+  fetch(`${API_BASE}/health`).catch(() => {});
+}
+
 export async function analyzeAddress(
   address: string,
   accessToken?: string,

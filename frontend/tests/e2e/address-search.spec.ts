@@ -39,6 +39,33 @@ test.describe("Address search and risk dashboard", () => {
     await expect(page.getByRole("heading", { name: "Wildfire" })).toBeVisible();
   });
 
+  test("slow search shows a warming-up message, then the results", async ({ page }) => {
+    let release!: () => void;
+    const released = new Promise<void>((resolve) => (release = resolve));
+    await page.route("**/api/v1/analyze", async (route) => {
+      await released;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(mockReport),
+      });
+    });
+    await page.goto("/");
+
+    await page
+      .getByPlaceholder("Enter a property address (e.g., 123 Main St, Miami, FL)")
+      .fill("123 Main St, Miami, FL");
+    await page.getByRole("button", { name: "Analyze Risk" }).click();
+
+    const message = page.getByTestId("warming-up-message");
+    await expect(message).toBeHidden();
+    await expect(message).toBeVisible({ timeout: 8000 });
+
+    release();
+    await expect(page.getByRole("heading", { name: mockReport.address })).toBeVisible();
+    await expect(message).toBeHidden();
+  });
+
   test("invalid address shows error below the input", async ({ page }) => {
     await mockAnalyzeApi(page);
     await page.goto("/");

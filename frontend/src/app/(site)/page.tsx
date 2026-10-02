@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AddressSearch } from "@/components/ui/AddressSearch";
 import { LoadingSkeleton } from "@/components/dashboard/LoadingSkeleton";
 import { RiskDashboard } from "@/components/dashboard/RiskDashboard";
+import { warmUpBackend } from "@/lib/api-client";
 import {
   clearDashboardRestore,
   isDashboardRestoreRequested,
@@ -25,6 +26,10 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    warmUpBackend();
+  }, []);
 
   useEffect(() => {
     if ((report || loading) && dashboardRef.current) {
