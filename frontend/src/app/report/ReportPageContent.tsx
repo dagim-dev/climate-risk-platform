@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { VerdictBadge, unavailableHazardNames } from "@/components/dashboard/VerdictBadge";
 import { RiskTrendChart } from "@/components/dashboard/RiskTrendChart";
+import { Logo } from "@/components/layout/Logo";
 import { requestDashboardRestore, useStoredReport } from "@/lib/report-storage";
 import { severityFromScore, severityTextClass } from "@/lib/risk-styles";
 import type { Severity } from "@/types/risk";
@@ -91,6 +92,7 @@ export function ReportPageContent() {
   return (
     <div className="report-container space-y-8">
       <header className="report-section space-y-1">
+        <Logo tone="light" className="mb-3" />
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
           Climate Risk Report
         </p>
