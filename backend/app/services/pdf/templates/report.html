@@ -11,6 +11,9 @@
       font-size: 11pt;
       line-height: 1.4;
     }
+    .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .brand-name { font-size: 14pt; color: #1e3a5f; }
+    .brand-name strong { color: #0284c7; }
     h1 { font-size: 20pt; margin: 0 0 4px; }
     .meta { color: #666; font-size: 9pt; margin-bottom: 20px; }
     .verdict {
@@ -48,6 +51,10 @@
   </style>
 </head>
 <body>
+  <div class="brand">
+    <img class="brand-mark" src="data:image/svg+xml;base64,{{ logo_svg_b64 }}" width="32" height="32" alt="" />
+    <span class="brand-name">Climate<strong>Risk</strong></span>
+  </div>
   <p class="meta">Climate Risk Report</p>
   <h1>{{ report.address }}</h1>
   <p class="meta">Report generated {{ generated_at }}</p>
