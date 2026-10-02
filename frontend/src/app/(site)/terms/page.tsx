@@ -1,14 +1,25 @@
+import Link from "next/link";
+
 export default function TermsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
       <h1 className="text-4xl font-bold tracking-tight text-brand-primary">Terms of Service</h1>
-      <p className="mt-4 text-sm text-zinc-500">Last updated: August 27, 2026</p>
+      <p className="mt-4 text-sm text-zinc-500">Last updated: October 2, 2026</p>
       <div className="mt-8 space-y-10 leading-7 text-zinc-700">
         <section className="space-y-4">
           <p>
             These Terms of Service govern your use of Climate Risk Analyzer
             (&quot;ClimateRisk,&quot; &quot;the service,&quot; &quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). By using the
-            service, you agree to these terms.
+            service, you agree to these terms. The service is operated by Dagim
+            Mekonnen, an independent developer based in the United States. How we
+            handle personal information is described in our{" "}
+            <Link
+              href="/privacy"
+              className="font-medium text-brand-primary underline decoration-brand-accent underline-offset-4 hover:text-brand-accent"
+            >
+              Privacy Policy
+            </Link>
+            .
           </p>
         </section>
 
@@ -38,7 +49,13 @@ export default function TermsPage() {
             Some features are public, and some require an account. You may sign
             in with email and password or with Google. You are responsible for
             the accuracy of information you submit and for activity that occurs
-            through your account.
+            through your account, so keep your password secure and tell us
+            promptly if you believe your account has been compromised.
+          </p>
+          <p>
+            You must be at least 13 years old to use the service. If you are
+            under the age of majority where you live, you may use it only with
+            the permission of a parent or legal guardian.
           </p>
         </section>
 
@@ -101,14 +118,20 @@ export default function TermsPage() {
               supporting service integrations available at the time of the request.
             </li>
             <li>
-              Historical trend points shown in the app are interpolated from the
-              current analysis. They are not separate historical analyses run on
-              archived year-specific inputs.
+              Only today&apos;s scores are assessed. The 2030, 2040, and 2050 points
+              in the trend chart are illustrative linear projections from those
+              scores, not outputs of a climate model, and no past scores are shown.
             </li>
             <li>
-              Wildfire-related labels in the current app are inferred from nearby
-              fire counts and location data rather than official wildland-urban
-              interface or National Weather Service fire weather zone maps.
+              Wildfire scores are derived from U.S. Forest Service Wildfire Hazard
+              Potential data and nearby historical fire records. They are not
+              official wildland-urban interface designations or insurance
+              wildfire ratings.
+            </li>
+            <li>
+              If a data source cannot be reached or does not cover a location,
+              that hazard is shown as unavailable rather than estimated, and no
+              overall verdict is given unless all four hazards were assessed.
             </li>
             <li>
               AI summaries are machine-generated from report data and may be
@@ -130,35 +153,64 @@ export default function TermsPage() {
 
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-brand-primary">
-            Disclaimer of Warranties <span className="font-medium">[PLACEHOLDER — needs legal review]</span>
+            Disclaimer of Warranties
           </h2>
           <p>
-            The service is provided on an &quot;as is&quot; and &quot;as available&quot; basis. We
-            do not guarantee that the service will always be accurate,
-            uninterrupted, secure, or fit for a particular purpose.
+            The service is provided free of charge on an &quot;as is&quot; and &quot;as
+            available&quot; basis. To the fullest extent permitted by law, we
+            disclaim all warranties, express or implied, including warranties of
+            merchantability, fitness for a particular purpose, accuracy, and
+            non-infringement. We do not guarantee that the service or its data
+            will be accurate, complete, current, uninterrupted, secure, or free of
+            errors.
           </p>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-brand-primary">
-            Limitation of Liability <span className="font-medium">[PLACEHOLDER — needs legal review]</span>
+            Limitation of Liability
           </h2>
           <p>
             To the fullest extent permitted by law, ClimateRisk and its operator
-            should not be liable for losses or damages arising from use of, or
+            will not be liable for any indirect, incidental, special,
+            consequential, or punitive damages, or for any loss of profits,
+            revenue, data, or property value, arising from your use of, or
             reliance on, the service or its outputs, including decisions related
-            to property acquisition, underwriting, financing, pricing, or risk
-            management.
+            to property acquisition, underwriting, financing, pricing, insurance,
+            or risk management.
+          </p>
+          <p>
+            Our total liability for any claim relating to the service will not
+            exceed one hundred U.S. dollars (US$100). Some jurisdictions do not
+            allow certain of these limitations, so they apply to you only to the
+            extent permitted by law.
           </p>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-brand-primary">
-            Governing Law and Venue <span className="font-medium">[PLACEHOLDER — needs legal review]</span>
+            Governing Law and Venue
           </h2>
           <p>
-            These terms should specify the governing law, venue, and any dispute
-            resolution rules chosen for the service.
+            These terms are governed by the laws of the Commonwealth of Virginia,
+            United States, without regard to its conflict-of-law rules. Any
+            dispute relating to these terms or the service will be brought
+            exclusively in the state or federal courts located in Virginia, and
+            you and we consent to the jurisdiction of those courts. Before filing
+            a claim, please contact us so we can try to resolve the issue
+            informally.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-brand-primary">
+            Suspension and Termination
+          </h2>
+          <p>
+            You may stop using the service at any time and ask us to delete your
+            account as described in the Privacy Policy. We may suspend or end
+            access for anyone who violates these terms, and we may change or
+            discontinue the service, in whole or in part, at any time.
           </p>
         </section>
 
@@ -173,8 +225,14 @@ export default function TermsPage() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-brand-primary">Contact</h2>
           <p>
-            Questions about these terms can be sent through the Contact page or
-            by opening an issue at{" "}
+            Questions about these terms can be sent to{" "}
+            <a
+              href="mailto:dagimmekonnen3@gmail.com"
+              className="font-medium text-brand-primary underline decoration-brand-accent underline-offset-4 hover:text-brand-accent"
+            >
+              dagimmekonnen3@gmail.com
+            </a>
+            . Bug reports can also be opened as issues at{" "}
             <a
               href="https://github.com/dagim-dev/climate-risk-platform/issues"
               className="font-medium text-brand-primary underline decoration-brand-accent underline-offset-4 hover:text-brand-accent"
