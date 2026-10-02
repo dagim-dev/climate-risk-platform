@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "ClimateRisk — Climate Risk Intelligence",
   description:
     "Address-level climate risk intelligence for property investors, developers, and lenders.",
+  verification: {
+    google: "f9De_ljvPMsHL2-kpvNMZpwK73p911zSBh_KSxxELLY",
+  },
 };
 
 export const viewport: Viewport = {
