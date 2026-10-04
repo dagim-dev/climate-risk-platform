@@ -6,10 +6,18 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.database import Base, get_db
+from app.core.rate_limit import analyze_limiter
 from app.main import app
 from app.models.climate_source_cache import ClimateSourceCache  # noqa: F401
 from app.models.property import Property  # noqa: F401
 from app.models.user import User  # noqa: F401
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limits() -> Generator[None, None, None]:
+    analyze_limiter.reset()
+    yield
+    analyze_limiter.reset()
 
 
 @pytest.fixture

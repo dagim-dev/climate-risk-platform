@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     PDF_SIGNED_URL_EXPIRE_MINUTES: int = 60
     API_BASE_URL: str = "http://localhost:8000"
     GOOGLE_CLIENT_ID: str = ""
+    ANALYZE_RATE_LIMIT_PER_MINUTE: int = 10
+    ANALYZE_RATE_LIMIT_PER_DAY: int = 100
 
     @property
     def cors_origins_list(self) -> list[str]:

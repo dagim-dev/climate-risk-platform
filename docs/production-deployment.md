@@ -30,9 +30,17 @@ The signed JWT download URL still expires after
 
 ## Public API posture
 
-`--allow-unauthenticated` on Cloud Run is intentional: `/health`,
-`POST /api/v1/geocode`, and `POST /api/v1/analyze` are public. Saved
-properties, PDF generation, and `/auth/me` still require a JWT.
+`--allow-unauthenticated` on Cloud Run is intentional: `/health` and
+`POST /api/v1/analyze` are public. Saved properties, PDF generation, and
+`/auth/me` still require a JWT.
+
+Every analyze call spends Google Maps and OpenAI money and NOAA quota, so it is
+rate limited per client IP (`ANALYZE_RATE_LIMIT_PER_MINUTE`, default 10, and
+`ANALYZE_RATE_LIMIT_PER_DAY`, default 100). Counts live in each instance's
+memory, so the real ceiling is the limit times the instance count: keep
+`--max-instances` low (3). The in-app limit is not a spending cap. Also keep
+the provider-side caps in place: a Geocoding-only key restriction with a daily
+quota, an OpenAI project budget, and a GCP billing alert.
 
 Production **must** set a real `JWT_SECRET` (the development default is
 rejected at startup). Also set `GOOGLE_CLIENT_ID` if Google sign-in is
