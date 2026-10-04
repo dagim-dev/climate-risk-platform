@@ -50,6 +50,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --region "${GCP_REGION}" \
   --platform managed \
   --allow-unauthenticated \
+  --max-instances 3 \
   --port 8080 \
   --set-env-vars "ENVIRONMENT=production,APP_VERSION=2.0.0,CORS_ORIGINS=https://climaterisk.io,https://www.climaterisk.io" \
   --set-secrets "DATABASE_URL=DATABASE_URL:latest,GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,NOAA_API_KEY=NOAA_API_KEY:latest,JWT_SECRET=JWT_SECRET:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,SENTRY_DSN=SENTRY_DSN:latest"

@@ -296,34 +296,12 @@ Returns the API health status and current version.
 
 <br>
 
-### `POST /api/v1/geocode`
-
-Validates and geocodes a property address into geographic coordinates.
-
-**Request body:**
-```json
-{
-  "address": "123 Main Street, Miami, FL"
-}
-```
-
-**Response `200 OK`:**
-```json
-{
-  "latitude": 25.7617,
-  "longitude": -80.1918,
-  "formatted_address": "123 Main St, Miami, FL 33101, USA",
-  "place_id": "ChIJd8BlQ2BZwokRAFUEcm_qrcA"
-}
-```
-
-**Error `400`:** Address not found or geocoding API failure.
-
-<br>
-
 ### `POST /api/v1/analyze`
 
 Runs a full four-hazard climate risk analysis for a given property address.
+Public, but rate limited per client IP (10/minute, 100/day by default; see
+`ANALYZE_RATE_LIMIT_PER_MINUTE` / `ANALYZE_RATE_LIMIT_PER_DAY`). Over the limit it
+returns `429` with a `Retry-After` header. `address` is capped at 300 characters.
 
 **Request body:**
 ```json
@@ -412,7 +390,6 @@ climate-risk-platform/
 │   ├── app/
 │   │   ├── api/
 │   │   │   └── v1/endpoints/        # Route handlers (one file per domain)
-│   │   │       ├── geocoding.py
 │   │   │       ├── risk.py
 │   │   │       ├── auth.py
 │   │   │       └── properties.py
@@ -537,7 +514,7 @@ scaffolding. Do not assume Vercel or Cloud Run URLs exist.
 When you provision infrastructure:
 
 - Frontend target: Vercel
-- Backend target: Google Cloud Run (`--allow-unauthenticated` because analyze/geocode are public)
+- Backend target: Google Cloud Run (`--allow-unauthenticated` because analyze is public; it is rate limited per IP)
 - Production requires a real `JWT_SECRET`
 - PDFs are local-disk only until object storage is added
 

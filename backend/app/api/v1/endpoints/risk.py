@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.core.rate_limit import limit_analyze
 from app.schemas.address import AddressRequest
 from app.schemas.risk import ClimateRiskReport
 from app.services.ai.summary_generator import generate_risk_summary
@@ -15,7 +16,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/analyze", response_model=ClimateRiskReport)
+@router.post(
+    "/analyze",
+    response_model=ClimateRiskReport,
+    dependencies=[Depends(limit_analyze)],
+)
 async def analyze_risk(request_body: AddressRequest):
     try:
         coordinates = await geocode_address(request_body.address)
