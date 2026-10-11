@@ -4,13 +4,19 @@ import { useId, useState, type FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import { analyzeAddress } from "@/lib/api-client";
 import type { ClimateRiskReport } from "@/types/risk";
+import { ExampleAddresses } from "@/components/ui/ExampleAddresses";
 
 interface AddressSearchProps {
   onResult: (report: ClimateRiskReport) => void;
   onLoadingChange?: (loading: boolean) => void;
+  showExamples?: boolean;
 }
 
-export function AddressSearch({ onResult, onLoadingChange }: AddressSearchProps) {
+export function AddressSearch({
+  onResult,
+  onLoadingChange,
+  showExamples = false,
+}: AddressSearchProps) {
   const inputId = useId();
   const { data: session } = useSession();
   const [address, setAddress] = useState("");
@@ -22,9 +28,18 @@ export function AddressSearch({ onResult, onLoadingChange }: AddressSearchProps)
     onLoadingChange?.(value);
   };
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const trimmed = address.trim();
+    runAnalysis(address);
+  }
+
+  function handleExampleSelect(example: string) {
+    setAddress(example);
+    runAnalysis(example);
+  }
+
+  async function runAnalysis(value: string) {
+    const trimmed = value.trim();
     if (!trimmed || loading) return;
 
     setError(null);
@@ -79,6 +94,8 @@ export function AddressSearch({ onResult, onLoadingChange }: AddressSearchProps)
           {error}
         </p>
       )}
+
+      {showExamples && <ExampleAddresses onSelect={handleExampleSelect} disabled={loading} />}
     </form>
   );
 }

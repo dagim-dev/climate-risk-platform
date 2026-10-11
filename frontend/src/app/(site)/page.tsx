@@ -60,7 +60,7 @@ export default function Home() {
         </div>
 
         <div className="flex w-full justify-center">
-          <AddressSearch onResult={setReport} onLoadingChange={setLoading} />
+          <AddressSearch onResult={setReport} onLoadingChange={setLoading} showExamples />
         </div>
 
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
