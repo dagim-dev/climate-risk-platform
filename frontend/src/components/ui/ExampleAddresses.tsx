@@ -33,7 +33,7 @@ export function ExampleAddresses({ onSelect, disabled }: ExampleAddressesProps) 
         href="https://www.google.com/maps"
         target="_blank"
         rel="noopener noreferrer"
-        className="text-sm text-zinc-500 underline-offset-4 transition-colors hover:text-brand-primary hover:underline"
+        className="mt-1 text-base font-medium text-zinc-600 underline-offset-4 transition-colors hover:text-brand-primary hover:underline"
       >
         <span aria-hidden="true">📍 </span>
         or find one on Google Maps
