@@ -5,7 +5,7 @@ import { VerdictBadge, unavailableHazardNames } from "@/components/dashboard/Ver
 import { RiskTrendChart } from "@/components/dashboard/RiskTrendChart";
 import { Logo } from "@/components/layout/Logo";
 import { requestDashboardRestore, useStoredReport } from "@/lib/report-storage";
-import { severityFromScore, severityTextClass } from "@/lib/risk-styles";
+import { severityFromScore, severityPillClass } from "@/lib/risk-styles";
 import type { Severity } from "@/types/risk";
 
 function formatDate(iso: string): string {
@@ -56,7 +56,7 @@ function ReportScoreRow({
           <span className="font-semibold text-brand-primary">{label}</span>
         </div>
         <span
-          className={`rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${severityTextClass[severity]}`}
+          className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${severityPillClass[severity]}`}
         >
           {severity}
         </span>

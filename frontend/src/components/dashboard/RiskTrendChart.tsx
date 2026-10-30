@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { cardClass } from "@/lib/ui";
 import type { TrendPoint } from "@/types/risk";
 
 interface RiskTrendChartProps {
@@ -19,10 +20,10 @@ interface RiskTrendChartProps {
 }
 
 const HAZARD_LINES = [
-  { key: "flood_score" as const, label: "Flood", color: "#2563eb" },
-  { key: "hurricane_score" as const, label: "Hurricane", color: "#7c3aed" },
-  { key: "heat_score" as const, label: "Heat", color: "#dc2626" },
-  { key: "wildfire_score" as const, label: "Wildfire", color: "#ea580c" },
+  { key: "flood_score" as const, label: "Flood", color: "var(--chart-flood)" },
+  { key: "hurricane_score" as const, label: "Hurricane", color: "var(--chart-hurricane)" },
+  { key: "heat_score" as const, label: "Heat", color: "var(--chart-heat)" },
+  { key: "wildfire_score" as const, label: "Wildfire", color: "var(--chart-wildfire)" },
 ];
 
 export function RiskTrendChart({ trend }: RiskTrendChartProps) {
@@ -36,46 +37,59 @@ export function RiskTrendChart({ trend }: RiskTrendChartProps) {
   const currentYear = observed.length ? observed[observed.length - 1].year : undefined;
 
   return (
-    <section className="space-y-3">
+    <section className={`${cardClass} space-y-4 p-5 sm:p-6`}>
       <div>
-        <h3 className="text-lg font-semibold text-brand-primary">Risk Outlook</h3>
-        <p className="text-sm text-zinc-500">
+        <h3 className="font-display text-3xl text-ink">Risk Outlook</h3>
+        <p className="mt-1 text-sm leading-6 text-ink-muted">
           Only today&apos;s scores are assessed from data. Later years are simple linear
           projections from today&apos;s scores, not forecasts.
         </p>
       </div>
 
-      <div className="h-80 w-full rounded-md border border-zinc-200 bg-white p-4">
+      <div className="h-72 w-full sm:h-80">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={trend} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
             <XAxis
               dataKey="year"
-              tick={{ fontSize: 12 }}
-              stroke="#71717a"
+              tick={{ fontSize: 12, fill: "var(--chart-axis)" }}
+              stroke="var(--chart-axis)"
             />
             <YAxis
               domain={[0, 100]}
-              tick={{ fontSize: 12 }}
-              stroke="#71717a"
+              tick={{ fontSize: 12, fill: "var(--chart-axis)" }}
+              stroke="var(--chart-axis)"
               label={{
                 value: "Score",
                 angle: -90,
                 position: "insideLeft",
-                style: { fontSize: 12, fill: "#71717a" },
+                style: { fontSize: 12, fill: "var(--chart-axis)" },
               }}
             />
             <Tooltip
               formatter={(value, name) => [value ?? "Not assessed", String(name)]}
               labelFormatter={(year) => `Year ${year}`}
+              contentStyle={{
+                background: "var(--surface)",
+                border: "1px solid var(--line)",
+                borderRadius: 12,
+                color: "var(--ink)",
+                fontSize: 13,
+              }}
+              labelStyle={{ color: "var(--ink)", fontWeight: 600 }}
             />
-            <Legend />
+            <Legend wrapperStyle={{ fontSize: 13 }} />
             {currentYear !== undefined && (
               <ReferenceLine
                 x={currentYear}
-                stroke="#a1a1aa"
+                stroke="var(--chart-axis)"
                 strokeDasharray="4 4"
-                label={{ value: "Today", position: "insideTopRight", fontSize: 11 }}
+                label={{
+                  value: "Today",
+                  position: "insideTopRight",
+                  fontSize: 11,
+                  fill: "var(--chart-axis)",
+                }}
               />
             )}
             {lines.map(({ key, label, color }) => (
@@ -94,7 +108,7 @@ export function RiskTrendChart({ trend }: RiskTrendChartProps) {
         </ResponsiveContainer>
       </div>
 
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs leading-5 text-ink-muted">
         The dashed line marks today. Projection slopes reflect each hazard&apos;s observed signal
         (e.g. the NOAA hot-day trend) and are illustrative only.
         {lines.length < HAZARD_LINES.length && " Hazards that could not be assessed are not shown."}
