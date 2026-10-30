@@ -71,7 +71,7 @@ export function RiskDashboard({ report, onAnalyzeAnother }: RiskDashboardProps) 
         verdictReason={report.verdict_reason}
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {hazards.map(({ key, hazard, icon, data }) => (
           <ScoreCard key={key} hazard={hazard} icon={icon} data={data} />
         ))}

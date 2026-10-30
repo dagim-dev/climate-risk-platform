@@ -31,7 +31,7 @@ export function Header() {
   }, [menuOpen]);
 
   return (
-    <header className="on-dark sticky top-0 z-40 border-b border-white/10 bg-space-950/85 text-white backdrop-blur-md">
+    <header className="on-dark sticky top-0 z-40 border-b border-white/10 bg-space-950 text-white">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link
           href="/"
