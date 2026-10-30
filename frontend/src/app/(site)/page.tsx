@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AddressSearch } from "@/components/ui/AddressSearch";
+import { Globe } from "@/components/ui/Globe";
+import { HazardBadge } from "@/components/ui/HazardIcon";
 import { LoadingSkeleton } from "@/components/dashboard/LoadingSkeleton";
 import { RiskDashboard } from "@/components/dashboard/RiskDashboard";
 import { warmUpBackend } from "@/lib/api-client";
@@ -10,7 +12,15 @@ import {
   isDashboardRestoreRequested,
   useStoredReport,
 } from "@/lib/report-storage";
+import { eyebrowClass } from "@/lib/ui";
 import type { ClimateRiskReport } from "@/types/risk";
+
+const HERO_HAZARDS = [
+  { name: "flood", label: "Flood" },
+  { name: "hurricane", label: "Hurricane" },
+  { name: "heat", label: "Heat" },
+  { name: "wildfire", label: "Wildfire" },
+] as const;
 
 export default function Home() {
   const [searchedReport, setReport] = useState<ClimateRiskReport | null>(null);
@@ -48,30 +58,57 @@ export default function Home() {
     <div className="flex flex-1 flex-col">
       <section
         ref={heroRef}
-        className="flex flex-col items-center justify-center gap-8 bg-gradient-to-b from-zinc-50 to-white px-4 py-24 text-center sm:px-6"
+        className="starfield on-dark relative overflow-hidden text-white"
       >
-        <div className="max-w-3xl">
-          <h1 className="text-4xl font-bold tracking-tight text-brand-primary sm:text-5xl">
-            Understand Climate Risk Before You Invest
-          </h1>
-          <p className="mt-4 text-lg text-zinc-600 sm:text-xl">
-            Enter any U.S. property address for an instant, data-backed climate risk assessment.
-          </p>
-        </div>
+        <div className="relative mx-auto grid max-w-6xl items-center gap-8 px-4 pb-16 pt-12 sm:px-6 sm:pt-16 lg:grid-cols-[1.15fr_1fr] lg:pb-24 lg:pt-20">
+          <div className="relative z-10">
+            <p className={`${eyebrowClass} text-brand-accent`}>Address-level climate risk</p>
+            <h1 className="mt-4 max-w-xl font-display text-[2.75rem] leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
+              Understand <em className="text-sky-200">climate risk</em> before you invest
+            </h1>
+            <p className="mt-5 max-w-lg text-lg leading-8 text-white/75">
+              Enter any U.S. property address for an instant, data-backed climate risk assessment.
+            </p>
 
-        <div className="flex w-full justify-center">
-          <AddressSearch onResult={setReport} onLoadingChange={setLoading} showExamples />
-        </div>
+            <div className="mt-8">
+              <AddressSearch
+                onResult={setReport}
+                onLoadingChange={setLoading}
+                showExamples
+                tone="dark"
+              />
+            </div>
 
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Powered by NOAA · FEMA · USFS · NIFC
-        </p>
+            <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-4 border-t border-white/10 pt-6">
+              <ul className="flex gap-3" aria-label="Hazards we score">
+                {HERO_HAZARDS.map(({ name, label }) => (
+                  <li key={name} className="flex flex-col items-center gap-1.5">
+                    <HazardBadge name={name} className="h-10 w-10 border-white/25 text-white" />
+                    <span className="text-[0.6875rem] uppercase tracking-[0.15em] text-white/70">
+                      {label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/65">
+                Powered by NOAA · FEMA · USFS · NIFC
+              </p>
+            </div>
+          </div>
+
+          {/* Behind the copy on phones, its own column on large screens. */}
+          <div className="pointer-events-none absolute -right-32 -top-10 w-[26rem] opacity-40 sm:-right-24 sm:w-[32rem] lg:pointer-events-auto lg:relative lg:right-auto lg:top-auto lg:w-full lg:opacity-100">
+            <Globe
+              focus={report ? { latitude: report.latitude, longitude: report.longitude } : null}
+            />
+          </div>
+        </div>
       </section>
 
       {(loading || report) && (
         <section
           ref={dashboardRef}
-          className="border-t border-zinc-200 bg-zinc-50 px-4 py-16 sm:px-6"
+          className="scroll-mt-16 border-t border-line bg-canvas px-4 py-14 sm:px-6 sm:py-20"
           aria-label="Risk assessment results"
         >
           {loading && <LoadingSkeleton />}
@@ -81,13 +118,11 @@ export default function Home() {
 
               {/* Hidden rather than unmounted while loading, so a failed search keeps its error. */}
               <div
-                className={`mx-auto w-full max-w-4xl flex-col items-center gap-4 border-t border-zinc-200 pt-10 ${
+                className={`mx-auto w-full max-w-5xl flex-col items-center gap-4 rounded-3xl border border-line bg-surface px-4 py-10 text-center sm:px-8 ${
                   loading ? "hidden" : "flex"
                 }`}
               >
-                <h3 className="text-lg font-semibold text-brand-primary">
-                  Analyze another address
-                </h3>
+                <h3 className="font-display text-3xl text-ink">Analyze another address</h3>
                 <div className="flex w-full justify-center">
                   <AddressSearch onResult={setReport} onLoadingChange={setLoading} />
                 </div>
