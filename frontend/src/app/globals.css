@@ -1,29 +1,165 @@
 @import "tailwindcss";
 
-/* Brand and risk palette (see docs/design-system.md). */
+/* Raw palette (see docs/design-system.md). */
 @theme {
+  --color-space-950: #050b18;
+  --color-space-900: #0a1428;
+  --color-space-800: #10203d;
+  --color-brand-primary: #1e3a5f;
+  --color-brand-accent: #38bdf8;
+
+  /* Hazard severity hues, kept for fills that sit on a fixed background. */
   --color-risk-low: #22c55e;
   --color-risk-moderate: #f59e0b;
   --color-risk-high: #ef4444;
   --color-risk-extreme: #7f1d1d;
-  --color-brand-primary: #1e3a5f;
-  --color-brand-accent: #38bdf8;
 }
 
+/* Semantic tokens. Light values here, dark values below; print always uses light. */
 :root {
-  color-scheme: light;
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light dark;
+
+  --canvas: #f4f6fa;
+  --surface: #ffffff;
+  --surface-2: #eef2f7;
+  --ink: #0b1628;
+  --ink-muted: #475569;
+  --line: #d9e1ec;
+  --accent-ink: #0369a1;
+  --focus: #0284c7;
+
+  --risk-low-ink: #15803d;
+  --risk-moderate-ink: #b45309;
+  --risk-high-ink: #b91c1c;
+  --risk-extreme-ink: #7f1d1d;
+  --risk-low-soft: #dcfce7;
+  --risk-moderate-soft: #fef3c7;
+  --risk-high-soft: #fee2e2;
+  --risk-extreme-soft: #fde4e4;
+  --risk-low-fill: #16a34a;
+  --risk-moderate-fill: #d97706;
+  --risk-high-fill: #dc2626;
+  --risk-extreme-fill: #7f1d1d;
+
+  /* "Unavailable" is its own state, never a severity. */
+  --warn-ink: #92400e;
+  --warn-soft: #fffbeb;
+  --warn-line: #f2c46d;
+
+  --chart-grid: #e2e8f0;
+  --chart-axis: #64748b;
+}
+
+@media screen and (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #050b18;
+    --surface: #0c1729;
+    --surface-2: #13223a;
+    --ink: #e8eef7;
+    --ink-muted: #a3b3c9;
+    --line: #22355a;
+    --accent-ink: #7dd3fc;
+    --focus: #7dd3fc;
+
+    --risk-low-ink: #86efac;
+    --risk-moderate-ink: #fcd34d;
+    --risk-high-ink: #fca5a5;
+    --risk-extreme-ink: #fecdd3;
+    --risk-low-soft: rgb(34 197 94 / 0.14);
+    --risk-moderate-soft: rgb(245 158 11 / 0.14);
+    --risk-high-soft: rgb(239 68 68 / 0.16);
+    --risk-extreme-soft: rgb(244 63 94 / 0.18);
+    --risk-low-fill: #4ade80;
+    --risk-moderate-fill: #fbbf24;
+    --risk-high-fill: #f87171;
+    --risk-extreme-fill: #f43f5e;
+
+    --warn-ink: #fcd34d;
+    --warn-soft: rgb(245 158 11 / 0.08);
+    --warn-line: rgb(245 158 11 / 0.4);
+
+    --chart-grid: #1c2d4a;
+    --chart-axis: #8fa1bb;
+  }
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: Arial, Helvetica, sans-serif;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-accent-ink: var(--accent-ink);
+  --color-focus: var(--focus);
+
+  --color-risk-low-ink: var(--risk-low-ink);
+  --color-risk-moderate-ink: var(--risk-moderate-ink);
+  --color-risk-high-ink: var(--risk-high-ink);
+  --color-risk-extreme-ink: var(--risk-extreme-ink);
+  --color-risk-low-soft: var(--risk-low-soft);
+  --color-risk-moderate-soft: var(--risk-moderate-soft);
+  --color-risk-high-soft: var(--risk-high-soft);
+  --color-risk-extreme-soft: var(--risk-extreme-soft);
+  --color-risk-low-fill: var(--risk-low-fill);
+  --color-risk-moderate-fill: var(--risk-moderate-fill);
+  --color-risk-high-fill: var(--risk-high-fill);
+  --color-risk-extreme-fill: var(--risk-extreme-fill);
+
+  --color-warn-ink: var(--warn-ink);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-line: var(--warn-line);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--canvas);
+  color: var(--ink);
   font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Dark chrome (header, hero, footer) is dark in both modes, so it needs the light ring. */
+.on-dark :focus-visible {
+  outline-color: #7dd3fc;
+}
+
+/* Deep-space backdrop: three tiled star layers plus a soft blue nebula, no images. */
+.starfield {
+  background-color: var(--color-space-950);
+  background-image:
+    radial-gradient(1px 1px at 23px 41px, rgb(255 255 255 / 0.75), transparent),
+    radial-gradient(1px 1px at 131px 87px, rgb(255 255 255 / 0.5), transparent),
+    radial-gradient(1.5px 1.5px at 197px 13px, rgb(186 230 253 / 0.8), transparent),
+    radial-gradient(1px 1px at 61px 173px, rgb(255 255 255 / 0.45), transparent),
+    radial-gradient(1px 1px at 163px 211px, rgb(255 255 255 / 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 229px 149px, rgb(255 255 255 / 0.35), transparent),
+    radial-gradient(ellipse 60% 50% at 75% 40%, rgb(56 189 248 / 0.12), transparent 70%),
+    radial-gradient(ellipse 50% 60% at 10% 90%, rgb(30 58 95 / 0.55), transparent 70%);
+  background-size:
+    240px 240px,
+    240px 240px,
+    240px 240px,
+    240px 240px,
+    240px 240px,
+    240px 240px,
+    100% 100%,
+    100% 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
