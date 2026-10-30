@@ -60,12 +60,12 @@ export function LogoMark({ className, title }: { className?: string; title?: str
 
 const WORDMARK_TONES = {
   dark: { climate: "", risk: "text-brand-accent" },
-  light: { climate: "text-brand-primary", risk: "text-sky-600" },
+  light: { climate: "text-ink", risk: "text-accent-ink" },
 } as const;
 
 /**
  * Mark plus "ClimateRisk" wordmark. `tone="dark"` is for the navy site chrome,
- * `tone="light"` for white pages such as the printable report.
+ * `tone="light"` for theme surfaces such as the printable report.
  */
 export function Logo({
   className = "",
