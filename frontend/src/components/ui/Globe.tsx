@@ -69,10 +69,18 @@ export function Globe({ focus = null, className = "" }: GlobeProps) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const small = window.matchMedia("(max-width: 640px)").matches;
 
+    const probe = document.createElement("canvas");
+    if (!probe.getContext("webgl2") && !probe.getContext("webgl")) {
+      wrapper.dataset.fallback = "true";
+      return;
+    }
+
     // Start over North America.
     let [phi, theta] = locationToAngles(38, -96);
     theta = 0.3;
-    let size = canvas.offsetWidth * dpr;
+    // CSS pixels; cobe applies the device pixel ratio itself.
+    let size = canvas.offsetWidth;
+    let resized = false;
     let dragX: number | null = null;
     let dragDelta = 0;
     let visible = true;
@@ -111,14 +119,23 @@ export function Globe({ focus = null, className = "" }: GlobeProps) {
       } else if (dragX === null && !reducedMotion) {
         phi += AUTO_SPIN;
       }
-      globe.update({ phi: target ? phi : phi + dragDelta, theta, width: size, height: size });
+      // Resizing the canvas clears it, so only pass a size when it changed.
+      globe.update({
+        phi: target ? phi : phi + dragDelta,
+        theta,
+        ...(resized ? { width: size, height: size } : {}),
+      });
+      resized = false;
       wrapper.dataset.ready = "true";
       if (visible) frame = requestAnimationFrame(render);
     };
     frame = requestAnimationFrame(render);
 
     const resize = new ResizeObserver(() => {
-      size = canvas.offsetWidth * dpr;
+      if (canvas.offsetWidth !== size) {
+        size = canvas.offsetWidth;
+        resized = true;
+      }
     });
     resize.observe(canvas);
 
