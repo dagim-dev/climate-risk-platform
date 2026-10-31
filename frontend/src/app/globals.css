@@ -161,6 +161,55 @@ body {
     100% 100%;
 }
 
+/* Searched-address pin on the homepage globe (Globe.tsx). cobe places an anchor named
+   --cobe-focus on the marker and sets --cobe-visible-focus while it faces the viewer. */
+.globe-pin {
+  position: absolute;
+  position-anchor: --cobe-focus;
+  left: anchor(center);
+  bottom: anchor(center);
+  translate: -50% 0;
+  opacity: var(--cobe-visible-focus, 0);
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+/* Without anchor positioning the amber cobe dot marks the address on its own. */
+@supports not (anchor-name: --a) {
+  .globe-pin {
+    display: none;
+  }
+}
+
+.globe-pin-pulse {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  translate: -50% 50%;
+  border-radius: 9999px;
+  border: 2px solid #fbbf24;
+  animation: globe-pin-pulse 1.8s ease-out infinite;
+}
+
+@keyframes globe-pin-pulse {
+  from {
+    scale: 0.3;
+    opacity: 0.9;
+  }
+  to {
+    scale: 2;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .globe-pin-pulse {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

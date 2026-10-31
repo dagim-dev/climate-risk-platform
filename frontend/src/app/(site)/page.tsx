@@ -96,8 +96,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Behind the copy on phones, its own column on large screens. */}
-          <div className="pointer-events-none absolute -right-32 -top-10 w-[26rem] opacity-40 sm:-right-24 sm:w-[32rem] lg:pointer-events-auto lg:relative lg:right-auto lg:top-auto lg:w-full lg:opacity-100">
+          {/* Its own row under the copy on small screens (narrow enough to scroll past, since
+              swipes on it turn the globe), its own column on large ones. */}
+          <div className="mx-auto w-[min(72vw,22rem)] sm:w-[26rem] lg:w-full">
             <Globe
               focus={report ? { latitude: report.latitude, longitude: report.longitude } : null}
             />
