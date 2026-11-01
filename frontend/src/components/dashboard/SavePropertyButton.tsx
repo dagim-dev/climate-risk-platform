@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useState } from "react";
 
 import { saveProperty } from "@/lib/api-client";
+import { buttonClass, linkClass } from "@/lib/ui";
 import type { ClimateRiskReport } from "@/types/risk";
 
 interface SavePropertyButtonProps {
@@ -23,12 +24,12 @@ export function SavePropertyButton({ report }: SavePropertyButtonProps) {
 
   if (!session?.accessToken) {
     return (
-      <div className="rounded-md border border-brand-accent/30 bg-brand-accent/10 px-4 py-3 text-sm text-brand-primary">
-        <Link href="/sign-up" className="font-semibold underline hover:no-underline">
+      <p className="text-sm leading-6 text-ink-muted">
+        <Link href="/sign-up" className={linkClass}>
           Create an account
         </Link>
         {" "}to save this property and track analyses over time.
-      </div>
+      </p>
     );
   }
 
@@ -54,12 +55,12 @@ export function SavePropertyButton({ report }: SavePropertyButtonProps) {
         type="button"
         onClick={handleSave}
         disabled={saving || saved}
-        className="inline-flex items-center justify-center rounded-md border border-brand-primary bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-primary/90 disabled:opacity-60"
+        className={buttonClass("primary")}
       >
         {saved ? "Property Saved" : saving ? "Saving..." : "Save This Property"}
       </button>
       {error && (
-        <p role="alert" className="text-sm font-medium text-risk-high">
+        <p role="alert" className="text-sm font-medium text-risk-high-ink">
           {error}
         </p>
       )}

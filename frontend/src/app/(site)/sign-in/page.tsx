@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Suspense, useState, type FormEvent } from "react";
 
+import { AuthShell } from "@/components/auth/AuthShell";
+import { buttonClass, inputClass, linkClass } from "@/lib/ui";
+
 /** Only same-site relative paths, so a crafted link can't redirect off-site after sign-in. */
 function safeCallbackUrl(value: string | null): string {
   if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) {
@@ -57,15 +60,14 @@ function SignInForm() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-md px-4 py-16 sm:px-6">
-      <h1 className="text-3xl font-bold text-brand-primary">Sign In</h1>
-      <p className="mt-2 text-sm text-zinc-600">
-        Save properties and download PDF reports.
-      </p>
+    <AuthShell
+      title="Sign In"
+      subtitle="Save properties and download PDF reports."
+    >
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-zinc-700">
+          <label htmlFor="email" className="block text-sm font-medium text-ink">
             Email
           </label>
           <input
@@ -75,12 +77,12 @@ function SignInForm() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-zinc-900 outline-none focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/40"
+            className={`mt-1.5 ${inputClass}`}
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-zinc-700">
+          <label htmlFor="password" className="block text-sm font-medium text-ink">
             Password
           </label>
           <input
@@ -90,12 +92,12 @@ function SignInForm() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-zinc-900 outline-none focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/40"
+            className={`mt-1.5 ${inputClass}`}
           />
         </div>
 
         {error && (
-          <p role="alert" className="text-sm font-medium text-risk-high">
+          <p role="alert" className="text-sm font-medium text-risk-high-ink">
             {error}
           </p>
         )}
@@ -103,29 +105,34 @@ function SignInForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-md bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-primary/90 disabled:opacity-60"
+          className={`w-full ${buttonClass("primary", "lg")}`}
         >
           {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
 
       <div className="mt-6">
+        <div className="mb-6 flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-ink-muted">
+          <span aria-hidden="true" className="h-px flex-1 bg-line" />
+          or
+          <span aria-hidden="true" className="h-px flex-1 bg-line" />
+        </div>
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          className="w-full rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-800 transition-colors hover:bg-zinc-50"
+          className={`w-full ${buttonClass("secondary", "lg")}`}
         >
           Continue with Google
         </button>
       </div>
 
-      <p className="mt-8 text-center text-sm text-zinc-600">
+      <p className="mt-8 text-center text-sm text-ink-muted">
         Don&apos;t have an account?{" "}
-        <Link href="/sign-up" className="font-medium text-brand-primary hover:underline">
+        <Link href="/sign-up" className={linkClass}>
           Sign up
         </Link>
       </p>
-    </div>
+    </AuthShell>
   );
 }
 

@@ -14,7 +14,11 @@ import {
   type SavedPropertyListItem,
 } from "@/lib/api-client";
 import { DownloadPdfButton } from "@/components/dashboard/DownloadPdfButton";
+import { HazardBadge } from "@/components/ui/HazardIcon";
+import { PageHero } from "@/components/ui/PageHero";
 import { saveReport } from "@/lib/report-storage";
+import { verdictStyles } from "@/lib/risk-styles";
+import { buttonClass, cardClass, linkClass } from "@/lib/ui";
 
 function formatDate(iso: string): string {
   const date = new Date(iso);
@@ -131,84 +135,109 @@ export default function PropertiesPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-16 sm:px-6">
-      <h1 className="text-3xl font-bold text-brand-primary">My Properties</h1>
-      <p className="mt-2 text-sm text-zinc-600">
+    <div className="flex flex-1 flex-col">
+      <PageHero eyebrow="Saved analyses" title="My Properties">
         Saved climate risk analyses. Re-run an address to refresh scores with the latest data.
-      </p>
+      </PageHero>
 
-      {error && (
-        <p role="alert" className="mt-6 text-sm font-medium text-risk-high">
-          {error}
-        </p>
-      )}
-
-      {missingToken && (
-        <div className="mt-8 rounded-md border border-amber-200 bg-amber-50 px-6 py-6 text-sm text-amber-950">
-          We couldn&apos;t connect your account to the analysis service.{" "}
-          <button type="button" onClick={signInAgain} className="font-semibold underline">
-            Sign in again
-          </button>
-        </div>
-      )}
-
-      {loading && (
-        <p className="mt-8 text-sm text-zinc-500">Loading saved properties...</p>
-      )}
-
-      {!loading && !missingToken && !error && properties.length === 0 && (
-        <div className="mt-8 rounded-md border border-zinc-200 bg-zinc-50 px-6 py-8 text-center">
-          <p className="text-zinc-600">No saved properties yet.</p>
-          <Link
-            href="/"
-            className="mt-4 inline-block text-sm font-semibold text-brand-primary hover:underline"
+      <div className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6">
+        {error && (
+          <p
+            role="alert"
+            className="mb-6 rounded-xl border border-line bg-risk-high-soft px-4 py-3 text-sm font-medium text-risk-high-ink"
           >
-            Analyze an address and save it from the dashboard
-          </Link>
-        </div>
-      )}
+            {error}
+          </p>
+        )}
 
-      {!loading && properties.length > 0 && (
-        <ul className="mt-8 divide-y divide-zinc-200 rounded-md border border-zinc-200 bg-white">
-          {properties.map((property) => (
-            <li
-              key={property.id}
-              className="flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"
-            >
-              <div>
-                <p className="font-semibold text-brand-primary">{property.address}</p>
-                <p className="mt-1 text-sm text-zinc-500">
-                  Last updated {formatDate(property.updated_at)} ·{" "}
-                  {property.overall_risk_score != null
-                    ? `Score ${property.overall_risk_score}`
-                    : "Score unavailable"}{" "}
-                  · {property.verdict ?? "Verdict unavailable"}
-                </p>
-              </div>
+        {missingToken && (
+          <div className="rounded-2xl border border-dashed border-warn-line bg-warn-soft px-6 py-6 text-sm text-ink">
+            We couldn&apos;t connect your account to the analysis service.{" "}
+            <button type="button" onClick={signInAgain} className={linkClass}>
+              Sign in again
+            </button>
+          </div>
+        )}
 
-              <div className="flex flex-wrap items-start gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleRerun(property)}
-                  disabled={rerunningId === property.id}
-                  className="rounded-md bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-primary/90 disabled:opacity-60"
+        {loading && (
+          <div className="space-y-3" aria-hidden="true">
+            {[0, 1].map((index) => (
+              <div key={index} className={`${cardClass} h-24 animate-pulse bg-surface-2`} />
+            ))}
+          </div>
+        )}
+        {loading && <p className="sr-only">Loading saved properties...</p>}
+
+        {!loading && !missingToken && !error && properties.length === 0 && (
+          <div className={`${cardClass} flex flex-col items-center px-6 py-14 text-center`}>
+            <HazardBadge name="home" className="h-14 w-14 border-line text-accent-ink" />
+            <p className="mt-5 font-display text-3xl text-ink">No saved properties yet.</p>
+            <Link href="/" className={`mt-6 ${buttonClass("primary")}`}>
+              Analyze an address and save it from the dashboard
+            </Link>
+          </div>
+        )}
+
+        {!loading && properties.length > 0 && (
+          <ul className="space-y-3">
+            {properties.map((property) => {
+              const verdict = property.verdict ? verdictStyles[property.verdict] : null;
+              return (
+                <li
+                  key={property.id}
+                  className={`${cardClass} flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between`}
                 >
-                  {rerunningId === property.id ? "Re-running..." : "Re-run Analysis"}
-                </button>
-                <DownloadPdfButton propertyId={property.id} />
-                <button
-                  type="button"
-                  onClick={() => handleDelete(property)}
-                  disabled={deletingId === property.id}
-                  className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-60"
-                >
-                  {deletingId === property.id ? "Deleting..." : "Delete"}
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+                  <div className="flex min-w-0 items-start gap-4">
+                    <HazardBadge name="home" />
+                    <div className="min-w-0">
+                      <p className="break-words font-semibold text-ink">{property.address}</p>
+                      <p className="mt-1 text-sm text-ink-muted">
+                        Last updated {formatDate(property.updated_at)}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+                        <span className="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-ink">
+                          {property.overall_risk_score != null
+                            ? `Score ${property.overall_risk_score}`
+                            : "Score unavailable"}
+                        </span>
+                        <span
+                          className={`rounded-full px-2.5 py-1 ${
+                            verdict
+                              ? `${verdict.soft} ${verdict.ink}`
+                              : "border border-dashed border-line text-ink-muted"
+                          }`}
+                        >
+                          {property.verdict ?? "Verdict unavailable"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-start gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleRerun(property)}
+                      disabled={rerunningId === property.id}
+                      className={buttonClass("primary", "sm")}
+                    >
+                      {rerunningId === property.id ? "Re-running..." : "Re-run Analysis"}
+                    </button>
+                    <DownloadPdfButton propertyId={property.id} />
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(property)}
+                      disabled={deletingId === property.id}
+                      className={buttonClass("danger", "sm")}
+                    >
+                      {deletingId === property.id ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
