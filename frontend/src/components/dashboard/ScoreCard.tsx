@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import type { HazardScore, Severity } from "@/types/risk";
-import { severityBarClass, severityFromScore, severityTextClass } from "@/lib/risk-styles";
+import { HazardBadge, type HazardIconName } from "@/components/ui/HazardIcon";
+import { ScoreRing } from "@/components/ui/ScoreRing";
+import { severityFillClass, severityFromScore, severityPillClass } from "@/lib/risk-styles";
+import { cardClass } from "@/lib/ui";
 
 interface ScoreCardProps {
   hazard: string;
-  icon: string;
+  icon: HazardIconName;
   data: HazardScore;
 }
 
@@ -16,31 +19,40 @@ function formatAsOf(iso: string): string {
   return date.toLocaleDateString(undefined, { dateStyle: "medium" });
 }
 
+const pillClass = "rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide";
+
 export function ScoreCard({ hazard, icon, data }: ScoreCardProps) {
   const [expanded, setExpanded] = useState(false);
   const status = data.status ?? "ok";
 
   if (status === "unavailable" || data.score === null) {
     return (
-      <article className="flex flex-col rounded-lg border border-amber-200 bg-amber-50 p-5 shadow-sm">
-        <header className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span aria-hidden="true" className="text-2xl">
-              {icon}
-            </span>
-            <h3 className="text-lg font-semibold text-brand-primary">{hazard}</h3>
+      <article className="flex flex-col rounded-2xl border border-dashed border-warn-line bg-warn-soft p-5">
+        <header className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <HazardBadge name={icon} className="h-10 w-10 border-warn-line text-warn-ink" />
+            <h3 className="text-base font-semibold text-ink">{hazard}</h3>
           </div>
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-amber-900">
+          <span className={`${pillClass} border border-warn-line bg-surface text-warn-ink`}>
             Unavailable
           </span>
         </header>
-        <p className="mt-4 text-sm font-medium text-amber-950">
-          Data unavailable — cannot assess risk
-        </p>
-        {data.unavailable_reason ? (
-          <p className="mt-2 text-sm text-amber-900/90">{data.unavailable_reason}</p>
-        ) : null}
-        <p className="mt-3 text-xs text-amber-800/80">
+        <div className="mt-5 flex items-center gap-4">
+          <ScoreRing score={null} size={80}>
+            <span className="text-xl text-ink-muted" aria-hidden="true">
+              —
+            </span>
+          </ScoreRing>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-warn-ink">
+              Data unavailable — cannot assess risk
+            </p>
+            {data.unavailable_reason ? (
+              <p className="mt-1 text-sm text-ink">{data.unavailable_reason}</p>
+            ) : null}
+          </div>
+        </div>
+        <p className="mt-4 text-xs leading-5 text-ink-muted">
           If a data provider was temporarily unreachable, try again in a few minutes.
         </p>
       </article>
@@ -51,61 +63,71 @@ export function ScoreCard({ hazard, icon, data }: ScoreCardProps) {
   const severity: Severity = data.severity ?? severityFromScore(clampedScore);
 
   return (
-    <article className="flex flex-col rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-      <header className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span aria-hidden="true" className="text-2xl">
-            {icon}
-          </span>
-          <h3 className="text-lg font-semibold text-brand-primary">{hazard}</h3>
+    <article className={`${cardClass} flex flex-col p-5`}>
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <HazardBadge name={icon} />
+          <h3 className="text-base font-semibold text-ink">{hazard}</h3>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <span
-            className={`rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${severityTextClass[severity]}`}
-          >
-            {severity}
-          </span>
-          {status === "stale" && data.as_of ? (
-            <span className="text-xs text-zinc-500">Last updated {formatAsOf(data.as_of)}</span>
-          ) : null}
-        </div>
+        <span className={`${pillClass} ${severityPillClass[severity]}`}>{severity}</span>
       </header>
 
-      <div className="mt-4 flex items-baseline gap-2">
-        <span className="text-4xl font-bold text-brand-primary">{clampedScore}</span>
-        <span className="text-sm text-zinc-500">/ 100</span>
-      </div>
-
-      <div
-        className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-200"
-        role="progressbar"
-        aria-label={`${hazard} risk score`}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={clampedScore}
-      >
+      <div className="mt-5 flex items-center gap-4">
         <div
-          className={`h-full rounded-full transition-all ${severityBarClass[severity]}`}
-          style={{ width: `${clampedScore}%` }}
-        />
+          role="progressbar"
+          aria-label={`${hazard} risk score`}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={clampedScore}
+        >
+          <ScoreRing score={clampedScore} fillClass={severityFillClass[severity]} size={80}>
+            <span className="text-2xl font-semibold tabular-nums leading-none text-ink">
+              {clampedScore}
+            </span>
+            <span className="mt-0.5 text-[0.6875rem] text-ink-muted">/ 100</span>
+          </ScoreRing>
+        </div>
+        <dl className="min-w-0 space-y-2 text-sm">
+          {data.confidence ? (
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-ink-muted">Confidence</dt>
+              <dd className="font-medium text-ink">{data.confidence}</dd>
+            </div>
+          ) : null}
+          {status === "stale" && data.as_of ? (
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-ink-muted">Cached data</dt>
+              <dd className="font-medium text-ink">Last updated {formatAsOf(data.as_of)}</dd>
+            </div>
+          ) : null}
+        </dl>
       </div>
 
       <button
         type="button"
         onClick={() => setExpanded((prev) => !prev)}
         aria-expanded={expanded}
-        className="mt-4 flex items-center gap-1 self-start text-sm font-medium text-brand-accent hover:underline"
+        className="mt-5 flex items-center gap-1.5 self-start rounded text-sm font-medium text-accent-ink hover:underline"
       >
         <span>{expanded ? "Hide" : "Show"} Risk Factors</span>
-        <span aria-hidden="true">{expanded ? "▲" : "▼"}</span>
+        <svg
+          viewBox="0 0 16 16"
+          className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          aria-hidden="true"
+        >
+          <path d="m4 6 4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
 
       {expanded && (
-        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-700">
+        <ul className="mt-3 list-disc space-y-1 border-t border-line pl-5 pt-3 text-sm text-ink">
           {data.primary_factors.length > 0 ? (
             data.primary_factors.map((factor) => <li key={factor}>{factor}</li>)
           ) : (
-            <li className="list-none text-zinc-500">No specific risk factors reported.</li>
+            <li className="list-none text-ink-muted">No specific risk factors reported.</li>
           )}
         </ul>
       )}

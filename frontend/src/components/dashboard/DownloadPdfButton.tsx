@@ -4,6 +4,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
 
 import { ApiError, generatePropertyPdf } from "@/lib/api-client";
+import { buttonClass } from "@/lib/ui";
 
 interface DownloadPdfButtonProps {
   propertyId: number;
@@ -56,13 +57,13 @@ export function DownloadPdfButton({ propertyId }: DownloadPdfButtonProps) {
         type="button"
         onClick={handleDownload}
         disabled={loading}
-        className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-60"
+        className={buttonClass("secondary", "sm")}
       >
         {loading ? "Generating PDF..." : "Download PDF"}
       </button>
 
       {error && (
-        <p role="alert" className="text-sm text-risk-high">
+        <p role="alert" className="text-sm text-risk-high-ink">
           {error}
         </p>
       )}

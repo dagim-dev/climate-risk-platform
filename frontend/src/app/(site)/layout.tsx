@@ -6,7 +6,9 @@ export default function SiteLayout({ children }: LayoutProps<"/">) {
   return (
     <AuthSessionProvider>
       <Header />
-      <main className="flex flex-1 flex-col bg-white">{children}</main>
+      <main id="content" className="flex flex-1 flex-col bg-canvas">
+        {children}
+      </main>
       <Footer />
     </AuthSessionProvider>
   );

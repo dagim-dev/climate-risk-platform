@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+import { PageHero } from "@/components/ui/PageHero";
+import { buttonClass, cardClass } from "@/lib/ui";
+
 const features = [
   "Unlimited property analyses",
   "Four-hazard risk dashboard",
@@ -12,29 +15,29 @@ const features = [
 
 export default function PricingPage() {
   return (
-    <div className="bg-zinc-50 px-4 py-20 sm:px-6">
-      <div className="mx-auto max-w-2xl text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-brand-primary sm:text-5xl">
-          Completely Free
-        </h1>
-        <p className="mx-auto mt-4 max-w-xl text-lg text-zinc-600">
-          Every feature is available to every user at no cost. No paid tiers, no
-          feature gates, no credit card required.
-        </p>
+    <div className="flex flex-1 flex-col">
+      <PageHero eyebrow="Pricing" title="Completely Free" align="center">
+        Every feature is available to every user at no cost. No paid tiers, no
+        feature gates, no credit card required.
+      </PageHero>
 
-        <div className="mt-12 rounded-xl border border-zinc-200 bg-white p-8 text-left shadow-sm">
-          <h2 className="text-xl font-semibold text-brand-primary">
-            All Features Included
-          </h2>
-          <ul className="mt-6 space-y-3 text-zinc-700">
+      <div className="px-4 pb-20 sm:px-6">
+        <div className={`${cardClass} relative mx-auto -mt-10 max-w-2xl p-8 sm:p-10`}>
+          <h2 className="font-display text-3xl text-ink">All Features Included</h2>
+          <ul className="mt-6 grid gap-3 text-ink sm:grid-cols-2">
             {features.map((feature) => (
-              <li key={feature}>&#10003; {feature}</li>
+              <li key={feature} className="flex items-start gap-3">
+                <span
+                  aria-hidden="true"
+                  className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-risk-low-soft text-xs font-bold text-risk-low-ink"
+                >
+                  &#10003;
+                </span>
+                {feature}
+              </li>
             ))}
           </ul>
-          <Link
-            href="/"
-            className="mt-8 inline-block rounded-md bg-brand-primary px-5 py-3 font-semibold text-white transition-colors hover:bg-brand-primary/90"
-          >
+          <Link href="/" className={`mt-8 ${buttonClass("primary", "lg")}`}>
             Start Analyzing
           </Link>
         </div>
