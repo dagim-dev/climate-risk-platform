@@ -26,8 +26,9 @@ export interface EarthFocus {
 interface EarthHeroProps {
   /** Location to pin, e.g. the address that was just analyzed. */
   focus?: EarthFocus | null;
-  /** The hero copy. On large screens the Earth slides over if a pin would land under it. */
-  avoidRef: RefObject<HTMLElement | null>;
+  /** The panels over the Earth on large screens. It slides if a pin would land under either. */
+  leftPanelRef: RefObject<HTMLElement | null>;
+  rightPanelRef: RefObject<HTMLElement | null>;
 }
 
 interface LayerSources {
@@ -74,6 +75,8 @@ const PLACEHOLDER_STYLE: CSSProperties = {
 };
 
 const PIN_MARGIN = 16;
+// Half the pin's pulse plus some air, so it doesn't touch a panel.
+const PANEL_MARGIN = 36;
 // Room for the pin above its tip, so it doesn't touch the copy or the header.
 const PIN_HEIGHT = 44;
 
@@ -120,7 +123,7 @@ function LayerImage({
  * drifts it. Without WebGL or with reduced motion the still clouds stay. Decorative: everything
  * it shows is stated in the copy, and the pin repeats the address already on the page.
  */
-export function EarthHero({ focus = null, avoidRef }: EarthHeroProps) {
+export function EarthHero({ focus = null, leftPanelRef, rightPanelRef }: EarthHeroProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const baseImageRef = useRef<HTMLImageElement>(null);
@@ -191,15 +194,16 @@ export function EarthHero({ focus = null, avoidRef }: EarthHeroProps) {
     };
   }, [surfaceReady]);
 
-  // A pin can be under the copy (the West Coast on a small laptop) or out of frame (Alaska,
-  // Hawaii, Puerto Rico), so the Earth slides just far enough to bring it into the clear.
+  // A pin can be under a panel (the coasts on a small laptop) or out of frame (Alaska, Hawaii,
+  // Puerto Rico), so the Earth slides just far enough to bring it into the clear.
   useEffect(() => {
     const root = rootRef.current;
     const stage = stageRef.current;
-    if (!root) return;
+    const leftPanel = leftPanelRef.current;
+    const rightPanel = rightPanelRef.current;
+    if (!root || !leftPanel || !rightPanel) return;
     const place = () => {
-      const copy = avoidRef.current;
-      if (pinX === null || pinY === null || !stage || !copy) {
+      if (pinX === null || pinY === null || !stage) {
         root.style.setProperty("--earth-pan-x", "0px");
         root.style.setProperty("--earth-pan-y", "0px");
         return;
@@ -209,11 +213,15 @@ export function EarthHero({ focus = null, avoidRef }: EarthHeroProps) {
       const x = origin.left + stage.offsetLeft + stage.offsetWidth * (pinX - 0.5);
       const y = origin.top + stage.offsetTop + stage.offsetHeight * pinY;
 
-      // The clear area: right of the copy on large screens, the gap in it on small ones.
+      // The clear area: between the panels on large screens, the gap in the copy on small ones.
       const sideBySide = window.matchMedia(LARGE_SCREEN).matches;
       const frame = (sideBySide ? root : (root.parentElement ?? root)).getBoundingClientRect();
-      const left = (sideBySide ? copy.getBoundingClientRect().right : 0) + PIN_MARGIN;
-      const right = window.innerWidth - PIN_MARGIN;
+      const left = sideBySide
+        ? leftPanel.getBoundingClientRect().right + PANEL_MARGIN
+        : PIN_MARGIN;
+      const right = sideBySide
+        ? rightPanel.getBoundingClientRect().left - PANEL_MARGIN
+        : window.innerWidth - PIN_MARGIN;
       const top = frame.top + PIN_HEIGHT;
       const bottom = frame.bottom - PIN_MARGIN;
       const nextX = x < left ? left - x : x > right ? right - x : 0;
@@ -224,8 +232,10 @@ export function EarthHero({ focus = null, avoidRef }: EarthHeroProps) {
     place();
     const resize = new ResizeObserver(place);
     resize.observe(root);
+    resize.observe(leftPanel);
+    resize.observe(rightPanel);
     return () => resize.disconnect();
-  }, [pinX, pinY, avoidRef]);
+  }, [pinX, pinY, leftPanelRef, rightPanelRef]);
 
   return (
     <div ref={rootRef} className="earth-hero" aria-hidden="true">
