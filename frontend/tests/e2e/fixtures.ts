@@ -47,7 +47,10 @@ export const mockReport: ClimateRiskReport = {
   ],
 };
 
-export async function mockAnalyzeApi(page: import("@playwright/test").Page) {
+export async function mockAnalyzeApi(
+  page: import("@playwright/test").Page,
+  overrides: Partial<ClimateRiskReport> = {},
+) {
   await page.route("**/api/v1/analyze", async (route) => {
     if (route.request().method() !== "POST") {
       await route.continue();
@@ -69,7 +72,7 @@ export async function mockAnalyzeApi(page: import("@playwright/test").Page) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ ...mockReport, address }),
+      body: JSON.stringify({ ...mockReport, address, ...overrides }),
     });
   });
 }

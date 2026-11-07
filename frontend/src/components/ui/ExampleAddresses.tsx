@@ -17,8 +17,8 @@ const CATEGORY_ICONS: Record<string, HazardIconName> = {
 /** Example pills for the dark hero. */
 export function ExampleAddresses({ onSelect, disabled }: ExampleAddressesProps) {
   return (
-    <div className="mt-6 flex flex-col gap-3">
-      <p className="px-1 text-sm text-white/70">No address in mind? Try an example:</p>
+    <div className="flex flex-col gap-3">
+      <p className="px-1 text-sm text-white/90">No address in mind? Try an example:</p>
       <ul className="flex flex-wrap gap-2">
         {EXAMPLE_ADDRESSES.map((example) => {
           const iconName = CATEGORY_ICONS[example.category];
@@ -33,7 +33,7 @@ export function ExampleAddresses({ onSelect, disabled }: ExampleAddressesProps) 
               >
                 <span
                   aria-hidden="true"
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/20 text-brand-accent"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/20 text-brand-accent lg:text-sky-200"
                 >
                   {iconName ? <HazardIcon name={iconName} className="h-4 w-4" /> : example.icon}
                 </span>
@@ -41,7 +41,7 @@ export function ExampleAddresses({ onSelect, disabled }: ExampleAddressesProps) 
                 <span aria-hidden="true" className="text-white/40">
                   ·
                 </span>
-                <span className="text-white/75">{example.place}</span>
+                <span className="text-white/90">{example.place}</span>
               </button>
             </li>
           );
@@ -51,7 +51,7 @@ export function ExampleAddresses({ onSelect, disabled }: ExampleAddressesProps) 
         href="https://www.google.com/maps"
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-2 inline-flex items-center gap-1.5 self-start rounded px-1 text-base font-medium text-white/80 underline decoration-white/30 underline-offset-4 transition-colors hover:text-white hover:decoration-brand-accent"
+        className="mt-2 inline-flex items-center gap-1.5 self-start rounded px-1 text-base font-medium lg:text-sm xl:text-base text-white/90 underline decoration-white/30 underline-offset-4 transition-colors hover:text-white hover:decoration-brand-accent"
       >
         <span aria-hidden="true">📍</span>
         or find one on Google Maps
