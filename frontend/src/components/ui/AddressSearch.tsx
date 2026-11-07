@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { useSession } from "next-auth/react";
 import { analyzeAddress } from "@/lib/api-client";
 import { buttonClass, inputClass } from "@/lib/ui";
@@ -11,6 +11,8 @@ interface AddressSearchProps {
   onResult: (report: ClimateRiskReport) => void;
   onLoadingChange?: (loading: boolean) => void;
   showExamples?: boolean;
+  /** Content between the search box and the examples. */
+  beforeExamples?: ReactNode;
   /** `dark` for the starfield hero, `light` for regular surfaces (follows the theme). */
   tone?: "dark" | "light";
 }
@@ -35,6 +37,7 @@ export function AddressSearch({
   onResult,
   onLoadingChange,
   showExamples = false,
+  beforeExamples,
   tone = "light",
 }: AddressSearchProps) {
   const inputId = useId();
@@ -115,6 +118,8 @@ export function AddressSearch({
           {error}
         </p>
       )}
+
+      {beforeExamples}
 
       {showExamples && <ExampleAddresses onSelect={handleExampleSelect} disabled={loading} />}
     </form>

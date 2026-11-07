@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AddressSearch } from "@/components/ui/AddressSearch";
-import { Globe } from "@/components/ui/Globe";
+import { EarthHero } from "@/components/ui/EarthHero";
 import { HazardBadge } from "@/components/ui/HazardIcon";
 import { LoadingSkeleton } from "@/components/dashboard/LoadingSkeleton";
 import { RiskDashboard } from "@/components/dashboard/RiskDashboard";
@@ -36,6 +36,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
+  const heroCopyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     warmUpBackend();
@@ -58,15 +59,15 @@ export default function Home() {
     <div className="flex flex-1 flex-col">
       <section
         ref={heroRef}
-        className="starfield on-dark relative overflow-hidden text-white"
+        className="starfield on-dark relative isolate flex overflow-hidden text-white lg:min-h-[calc(100svh-4rem)]"
       >
-        <div className="relative mx-auto grid max-w-6xl items-center gap-8 px-4 pb-16 pt-12 sm:px-6 sm:pt-16 lg:grid-cols-[1.15fr_1fr] lg:pb-24 lg:pt-20">
-          <div className="relative z-10">
+        <div className="mx-auto flex w-full max-w-6xl items-center px-4 pb-12 pt-12 sm:px-6 sm:pt-16 lg:py-16">
+          <div ref={heroCopyRef} className="w-full lg:w-[48%] lg:max-w-[35rem]">
             <p className={`${eyebrowClass} text-brand-accent`}>Address-level climate risk</p>
-            <h1 className="mt-4 max-w-xl font-display text-[2.75rem] leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
+            <h1 className="mt-4 font-display text-[2.75rem] leading-[1.02] tracking-tight sm:text-6xl lg:text-[4.25rem]">
               Understand <em className="text-sky-200">climate risk</em> before you invest
             </h1>
-            <p className="mt-5 max-w-lg text-lg leading-8 text-white/75">
+            <p className="mt-5 max-w-lg text-lg leading-8 text-white/75 lg:max-w-md">
               Enter any U.S. property address for an instant, data-backed climate risk assessment.
             </p>
 
@@ -76,6 +77,18 @@ export default function Home() {
                 onLoadingChange={setLoading}
                 showExamples
                 tone="dark"
+                beforeExamples={
+                  // On small screens the Earth rises through this gap, so it's on the first
+                  // screen right under the search. On large ones it fills the whole hero.
+                  <div className="earth-window">
+                    <EarthHero
+                      focus={
+                        report ? { latitude: report.latitude, longitude: report.longitude } : null
+                      }
+                      avoidRef={heroCopyRef}
+                    />
+                  </div>
+                }
               />
             </div>
 
@@ -94,14 +107,6 @@ export default function Home() {
                 Powered by NOAA · FEMA · USFS · NIFC
               </p>
             </div>
-          </div>
-
-          {/* Its own row under the copy on small screens (narrow enough to scroll past, since
-              swipes on it turn the globe), its own column on large ones. */}
-          <div className="mx-auto w-[min(72vw,22rem)] sm:w-[26rem] lg:w-full">
-            <Globe
-              focus={report ? { latitude: report.latitude, longitude: report.longitude } : null}
-            />
           </div>
         </div>
       </section>

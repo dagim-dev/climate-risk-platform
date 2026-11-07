@@ -161,27 +161,100 @@ body {
     100% 100%;
 }
 
-/* Searched-address pin on the homepage globe (Globe.tsx). cobe places an anchor named
-   --cobe-focus on the marker and sets --cobe-visible-focus while it faces the viewer. */
-.globe-pin {
+/* Homepage Earth (EarthHero.tsx). The radius is the planet's on-screen size, which everything
+   else follows; the image's `sizes` attribute has to agree with it. Small screens hang the Earth
+   from .earth-window, a gap in the hero; large ones let it fill the hero behind the copy. */
+.earth-window {
+  --earth-radius: min(max(88vw, 20rem), 30rem);
+  position: relative;
+  height: calc(var(--earth-radius) * 0.84);
+  margin-top: 1.5rem;
+}
+
+.earth-hero {
+  --earth-center: 50%;
   position: absolute;
-  position-anchor: --cobe-focus;
-  left: anchor(center);
-  bottom: anchor(center);
+  z-index: -1;
+  left: 50%;
+  bottom: 0;
+  width: 200vw;
+  height: calc(var(--earth-radius) * 1.2);
   translate: -50% 0;
-  opacity: var(--cobe-visible-focus, 0);
-  transition: opacity 0.3s;
+  overflow: hidden;
   pointer-events: none;
 }
 
-/* Without anchor positioning the amber cobe dot marks the address on its own. */
-@supports not (anchor-name: --a) {
-  .globe-pin {
-    display: none;
+.earth-stage {
+  position: absolute;
+  bottom: 0;
+  left: var(--earth-center);
+  translate: calc(-50% + var(--earth-pan-x, 0px)) var(--earth-pan-y, 0px);
+  transition: translate 1.2s cubic-bezier(0.22, 0.7, 0.2, 1);
+}
+
+@media (min-width: 1024px) {
+  .earth-window {
+    position: static;
+    height: 0;
+    margin: 0;
+  }
+
+  .earth-hero {
+    --earth-center: 70%;
+    inset: 0;
+    width: auto;
+    height: auto;
+    translate: none;
+    container-type: size;
+  }
+
+  .earth-stage {
+    --earth-radius: min(52cqw, 90cqh);
   }
 }
 
-.globe-pin-pulse {
+.earth-placeholder {
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 42% 30%, #2c5478, #12263f 55%, #070f1e 78%);
+}
+
+/* Keeps the copy readable over a bright planet, and lets the Earth sink into what's below it. */
+.earth-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to top, var(--color-space-950), transparent 14%),
+    linear-gradient(
+      to bottom,
+      transparent 0,
+      rgb(5 11 24 / 0.8) 14%,
+      rgb(5 11 24 / 0.72) 30%,
+      transparent 48%
+    );
+}
+
+@media (min-width: 1024px) {
+  .earth-scrim {
+    background:
+      linear-gradient(to top, var(--color-space-950), transparent 14%),
+      linear-gradient(
+        to right,
+        rgb(5 11 24 / 0.9) 0,
+        rgb(5 11 24 / 0.82) 40%,
+        transparent 58%
+      );
+  }
+}
+
+/* Searched-address pin. Its tip sits on the place. */
+.earth-pin {
+  position: absolute;
+  translate: -50% -100%;
+}
+
+.earth-pin-pulse {
   position: absolute;
   left: 50%;
   bottom: 0;
@@ -190,10 +263,10 @@ body {
   translate: -50% 50%;
   border-radius: 9999px;
   border: 2px solid #fbbf24;
-  animation: globe-pin-pulse 1.8s ease-out infinite;
+  animation: earth-pin-pulse 1.8s ease-out infinite;
 }
 
-@keyframes globe-pin-pulse {
+@keyframes earth-pin-pulse {
   from {
     scale: 0.3;
     opacity: 0.9;
@@ -205,7 +278,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .globe-pin-pulse {
+  .earth-pin-pulse {
     display: none;
   }
 }

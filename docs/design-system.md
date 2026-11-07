@@ -47,7 +47,7 @@ The tokens are CSS variables on `:root`. Dark values apply under `@media screen 
 2. **Severity color comes only from `severity`** (or `severityFromScore`) through `lib/risk-styles.ts`. Don't reuse risk colors for unrelated UI states. The one exception is error text, which uses `risk-high-ink`.
 3. **Contrast.** Every text token pair passes WCAG AA (4.5:1) on `surface` and `canvas` in both themes. Ring and bar fills pass 3:1. When you add a pair, check it in both themes.
 4. **Focus.** Don't remove outlines. The global `:focus-visible` ring applies everywhere, and anything placed on dark chrome sits inside an `.on-dark` ancestor.
-5. **Motion.** `prefers-reduced-motion` turns off transitions. The globe then turns to a pin instantly instead of easing, and the pin doesn't pulse.
+5. **Motion.** `prefers-reduced-motion` turns off transitions. The Earth's clouds then stay still, it moves to a pin instantly instead of sliding, and the pin doesn't pulse.
 
 ## Components and helpers
 
@@ -55,6 +55,11 @@ The tokens are CSS variables on `:root`. Dark values apply under `@media screen 
 - `components/ui/PageHero` is the starfield title band used by content, properties and legal pages.
 - `components/ui/HazardIcon` provides line icons for flood, hurricane, heat, wildfire and home. `HazardBadge` puts the icon in an outlined circle.
 - `components/ui/ScoreRing` is the 0–100 ring, with a dashed empty state for no score.
-- `components/ui/Globe` is the WebGL globe (`cobe`). It's decorative and `aria-hidden`, and falls back to a CSS sphere without WebGL. It never spins on its own: it can be dragged in both axes (tilt clamped short of the poles), and it turns to the analyzed address and marks it with an amber pin (`.globe-pin` in `globals.css`, tied to cobe's marker anchor). It drifts back to the pin 3 s after a drag. Amber is deliberately not a risk token, so the pin doesn't read as a score. On small screens the globe has its own row under the search, because swipes on it turn it instead of scrolling the page.
+- `components/ui/EarthHero` is the homepage Earth, framed on the contiguous U.S. and rising from the bottom of the hero. It's decorative and `aria-hidden`. It's a pre-rendered image in two layers, not a live globe, and it can't be dragged:
+  - `base` holds the surface, lighting and atmosphere, and `clouds` holds the clouds and their shadows. `lib/earth-clouds.ts` is a small WebGL canvas that turns the cloud layer around Earth's axis, about 3.5° east and back over 5 minutes, and only starts once the page has loaded. With reduced motion or no WebGL the still cloud layer stays, which looks the same.
+  - `lib/earth-view.ts` projects a lat/lon onto the image using the camera in `assets/earth/view.json`, so a pin always matches the picture. If a pin would land under the copy or out of frame (the West Coast on some screens, Alaska, Hawaii, Puerto Rico), the Earth slides just far enough to clear it. Places on the far side of the planet (Guam) get no pin. Amber is deliberately not a risk token, so the pin doesn't read as a score.
+  - Large screens fill the hero with the Earth behind the copy, and `.earth-scrim` keeps the text at AA contrast. Small screens hang it in `.earth-window`, a gap between the search box and the examples, so it's on the first screen.
+  - To change the view, edit the camera and lighting in `frontend/scripts/render_earth_hero.py` and rerun it. It rewrites the images and `view.json`.
+  - Sources: terrain from NASA Blue Marble Next Generation (August 2004) and NASA's Blue Marble topography, clouds from NOAA GOES-East and GOES-West (29 August 2026) via NASA GIBS. It's an illustration composited from those, not a live or current view of the weather. U.S. government imagery is free to use commercially, but NASA's logos and any implied endorsement are not. Credit: "Imagery: NASA Blue Marble, NOAA GOES via NASA GIBS."
 - `components/auth/AuthShell` is the sign-in and sign-up backdrop and card.
 - `.starfield` (in `globals.css`) is a pure-CSS star background.
