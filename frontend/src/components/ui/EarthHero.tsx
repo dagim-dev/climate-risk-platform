@@ -26,15 +26,15 @@ interface EarthHeroProps {
 }
 
 interface LayerSources {
-  avif: { small: string; large: string };
+  avif: { phone: string; other: string };
   webp: string;
   fallback: string;
 }
 
 const BASE: LayerSources = {
   avif: {
-    small: `${base1200Avif.src} 1200w, ${base2200Avif.src} 2200w`,
-    large: `${base2200Avif.src} 2200w, ${base3400Avif.src} 3400w`,
+    phone: `${base1200Avif.src} 1200w`,
+    other: `${base2200Avif.src} 2200w, ${base3400Avif.src} 3400w`,
   },
   webp: `${base1200Webp.src} 1200w, ${base2200Webp.src} 2200w`,
   fallback: base2200Webp.src,
@@ -42,17 +42,20 @@ const BASE: LayerSources = {
 
 const CLOUDS: LayerSources = {
   avif: {
-    small: `${clouds1200Avif.src} 1200w`,
-    large: `${clouds2200Avif.src} 2200w`,
+    phone: `${clouds1200Avif.src} 1200w`,
+    other: `${clouds2200Avif.src} 2200w`,
   },
   webp: `${clouds1200Webp.src} 1200w, ${clouds2200Webp.src} 2200w`,
   fallback: clouds2200Webp.src,
 };
 
-// Rendered width of the image; keep in step with --earth-radius in globals.css. Small screens
-// never get the largest files, however dense the display: at that size nobody could tell.
+// Rendered width of the image; keep in step with --earth-radius in globals.css.
 const SIZES = "(min-width: 1024px) 137vw, min(232vw, 1267px)";
 const LARGE_SCREEN = "(min-width: 1024px)";
+// Phones always get the small files, even on dense screens: the image is the page's largest
+// element, and at this size the larger file doubles the wait on a slow connection for detail
+// that's hard to see.
+const PHONE = "(max-width: 639px)";
 
 const STAGE_STYLE: CSSProperties = {
   width: `calc(var(--earth-radius) * ${2 * earthView.halfWidth})`,
@@ -85,8 +88,8 @@ function LayerImage({
 }) {
   return (
     <picture>
-      <source type="image/avif" media={LARGE_SCREEN} srcSet={sources.avif.large} sizes={SIZES} />
-      <source type="image/avif" srcSet={sources.avif.small} sizes={SIZES} />
+      <source type="image/avif" media={PHONE} srcSet={sources.avif.phone} sizes={SIZES} />
+      <source type="image/avif" srcSet={sources.avif.other} sizes={SIZES} />
       <source type="image/webp" srcSet={sources.webp} sizes={SIZES} />
       <img
         ref={imgRef}
