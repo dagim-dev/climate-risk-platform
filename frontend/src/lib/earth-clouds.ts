@@ -1,13 +1,15 @@
 import { earthAxis, earthView } from "@/lib/earth-view";
 
 // Clouds swing east and back rather than circling: the layer only holds this side of the planet.
-const DRIFT_RADIANS = (3.5 * Math.PI) / 180;
-const DRIFT_PERIOD_MS = 300_000;
-// The drift is under a pixel per second, so a low frame rate is smooth and easy on batteries.
+const DRIFT_RADIANS = (8 * Math.PI) / 180;
+const DRIFT_PERIOD_MS = 130_000;
+// Below 1 rounds the turns of a triangle wave. A plain sine would leave the clouds almost still
+// for long stretches around each turn; this keeps them moving steadily and turns them gently.
+const DRIFT_ROUNDING = 0.97;
+// At a few pixels per second each frame moves a fraction of a pixel, so a low frame rate stays
+// smooth and is easy on batteries.
 const FRAME_MS = 80;
-const MAX_PIXEL_RATIO = 1.5;
-// The cloud layer's largest width: more canvas pixels than this add cost, not detail.
-const MAX_WIDTH = 2200;
+const MAX_PIXEL_RATIO = 3;
 
 const VERTEX_SHADER = `
 attribute vec2 position;
@@ -18,7 +20,10 @@ void main() {
 }`;
 
 // Finds the point on the sphere behind each pixel, turns it around Earth's axis and reads the
-// cloud layer where that point sits at rest, so clouds follow the curve of the planet.
+// cloud layer where that point sits at rest, so clouds follow the curve of the planet. A turned
+// point can land past the horizon, where the projection would fold the far side back over this
+// one, or below the frame, where the layer ends. Both fade out, over a band that closes up at
+// angle 0 so the first frame still matches the still image.
 const FRAGMENT_SHADER = `
 precision highp float;
 varying vec2 uv;
@@ -41,7 +46,11 @@ void main() {
   vec3 turned = point * cos(angle) + cross(axis, point) * sin(angle)
     + axis * dot(axis, point) * (1.0 - cos(angle));
   vec2 rest = turned.xy * focal / (cameraDistance - turned.z);
-  gl_FragColor = texture2D(clouds, vec2(
+  float band = min(abs(angle), 0.04) + 0.0001;
+  float horizon = 1.0 / cameraDistance;
+  float fade = smoothstep(horizon, horizon + band, turned.z)
+    * smoothstep(bottom, bottom + band, rest.y);
+  gl_FragColor = fade * texture2D(clouds, vec2(
     (rest.x + halfWidth) / (2.0 * halfWidth),
     (top - rest.y) / (top - bottom)
   ));
@@ -69,8 +78,9 @@ function createProgram(gl: WebGLRenderingContext): WebGLProgram | null {
 /**
  * Draws the cloud layer on `canvas` with a slow drift. At the first frame it matches the still
  * image exactly, so `onReady` can swap one for the other unseen, and `onLost` hands back if the
- * GPU drops the context. Stops drawing off screen. Returns a cleanup function, or null when
- * WebGL isn't available and the still image should stay.
+ * GPU drops the context. `image` must be loaded without a srcset, because `naturalWidth` is
+ * density-corrected on one that has it, which would hide the file's real size. Stops drawing off screen. Returns a cleanup function, or null when
+ * WebGL isn't available or the image is too large for this GPU, and the still image should stay.
  */
 export function startCloudDrift(
   canvas: HTMLCanvasElement,
@@ -79,6 +89,8 @@ export function startCloudDrift(
 ): (() => void) | null {
   const gl = canvas.getContext("webgl", { antialias: false, premultipliedAlpha: true });
   if (!gl) return null;
+  // Uploading a larger image fails without an error and would leave no clouds at all.
+  if (image.naturalWidth > gl.getParameter(gl.MAX_TEXTURE_SIZE)) return null;
   const program = createProgram(gl);
   if (!program) return null;
   gl.useProgram(program);
@@ -109,7 +121,8 @@ export function startCloudDrift(
 
   const fitToLayout = () => {
     const ratio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
-    const width = Math.min(Math.round(canvas.clientWidth * ratio), MAX_WIDTH);
+    // More canvas pixels than the layer has add cost, not detail.
+    const width = Math.min(Math.round(canvas.clientWidth * ratio), image.naturalWidth);
     const height = Math.round((width * earthView.height) / earthView.width);
     if (canvas.width === width && canvas.height === height) return;
     canvas.width = width;
@@ -119,7 +132,9 @@ export function startCloudDrift(
 
   const draw = (elapsed: number) => {
     // Negative, because this says where to read from and the clouds move the other way.
-    gl.uniform1f(angle, -DRIFT_RADIANS * Math.sin((2 * Math.PI * elapsed) / DRIFT_PERIOD_MS));
+    const phase = Math.sin((2 * Math.PI * elapsed) / DRIFT_PERIOD_MS);
+    const swing = Math.asin(DRIFT_ROUNDING * phase) / Math.asin(DRIFT_ROUNDING);
+    gl.uniform1f(angle, -DRIFT_RADIANS * swing);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
 
