@@ -58,7 +58,8 @@ export function Footer() {
 
       <div className="border-t border-white/10">
         <p className="mx-auto max-w-6xl px-4 py-5 text-xs text-white/60 sm:px-6">
-          &copy; {year} ClimateRisk. All rights reserved.
+          &copy; {year} ClimateRisk. All rights reserved. Homepage Earth is an illustration made
+          from NASA Blue Marble, GEBCO elevation and NOAA GOES imagery.
         </p>
       </div>
     </footer>
