@@ -3,13 +3,18 @@
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import base1200Avif from "@/assets/earth/base-1200.avif";
 import base1200Webp from "@/assets/earth/base-1200.webp";
-import base2200Avif from "@/assets/earth/base-2200.avif";
-import base2200Webp from "@/assets/earth/base-2200.webp";
-import base3400Avif from "@/assets/earth/base-3400.avif";
+import base1800Avif from "@/assets/earth/base-1800.avif";
+import base2500Avif from "@/assets/earth/base-2500.avif";
+import base2500Webp from "@/assets/earth/base-2500.webp";
+import base4200Avif from "@/assets/earth/base-4200.avif";
+import base5200Avif from "@/assets/earth/base-5200.avif";
 import clouds1200Avif from "@/assets/earth/clouds-1200.avif";
 import clouds1200Webp from "@/assets/earth/clouds-1200.webp";
-import clouds2200Avif from "@/assets/earth/clouds-2200.avif";
-import clouds2200Webp from "@/assets/earth/clouds-2200.webp";
+import clouds1800Avif from "@/assets/earth/clouds-1800.avif";
+import clouds2500Avif from "@/assets/earth/clouds-2500.avif";
+import clouds2500Webp from "@/assets/earth/clouds-2500.webp";
+import clouds4200Avif from "@/assets/earth/clouds-4200.avif";
+import clouds5200Avif from "@/assets/earth/clouds-5200.avif";
 import { startCloudDrift } from "@/lib/earth-clouds";
 import { earthView, projectToImage } from "@/lib/earth-view";
 
@@ -33,28 +38,27 @@ interface LayerSources {
 
 const BASE: LayerSources = {
   avif: {
-    phone: `${base1200Avif.src} 1200w`,
-    other: `${base2200Avif.src} 2200w, ${base3400Avif.src} 3400w`,
+    // Phones stop at 1800, which is 2x at this size. The 2500 adds over a second of download and
+    // decoding to the page's largest paint on a slow phone.
+    phone: `${base1200Avif.src} 1200w, ${base1800Avif.src} 1800w`,
+    other: `${base1800Avif.src} 1800w, ${base2500Avif.src} 2500w, ${base4200Avif.src} 4200w, ${base5200Avif.src} 5200w`,
   },
-  webp: `${base1200Webp.src} 1200w, ${base2200Webp.src} 2200w`,
-  fallback: base2200Webp.src,
+  webp: `${base1200Webp.src} 1200w, ${base2500Webp.src} 2500w`,
+  fallback: base2500Webp.src,
 };
 
 const CLOUDS: LayerSources = {
   avif: {
-    phone: `${clouds1200Avif.src} 1200w`,
-    other: `${clouds2200Avif.src} 2200w`,
+    phone: `${clouds1200Avif.src} 1200w, ${clouds1800Avif.src} 1800w`,
+    other: `${clouds1800Avif.src} 1800w, ${clouds2500Avif.src} 2500w, ${clouds4200Avif.src} 4200w, ${clouds5200Avif.src} 5200w`,
   },
-  webp: `${clouds1200Webp.src} 1200w, ${clouds2200Webp.src} 2200w`,
-  fallback: clouds2200Webp.src,
+  webp: `${clouds1200Webp.src} 1200w, ${clouds2500Webp.src} 2500w`,
+  fallback: clouds2500Webp.src,
 };
 
 // Rendered width of the image; keep in step with --earth-radius in globals.css.
-const SIZES = "(min-width: 1024px) 137vw, min(232vw, 1267px)";
+const SIZES = "(min-width: 1024px) min(137vw, calc(237.6vh - 152px)), min(232vw, 1267px)";
 const LARGE_SCREEN = "(min-width: 1024px)";
-// Phones always get the small files, even on dense screens: the image is the page's largest
-// element, and at this size the larger file doubles the wait on a slow connection for detail
-// that's hard to see.
 const PHONE = "(max-width: 639px)";
 
 const STAGE_STYLE: CSSProperties = {
@@ -79,12 +83,14 @@ function LayerImage({
   imgRef,
   priority = false,
   className = "",
+  onLoad,
 }: {
   sources: LayerSources;
   alt?: string;
   imgRef?: RefObject<HTMLImageElement | null>;
   priority?: boolean;
   className?: string;
+  onLoad?: () => void;
 }) {
   return (
     <picture>
@@ -99,6 +105,7 @@ function LayerImage({
         height={earthView.height}
         decoding="async"
         fetchPriority={priority ? "high" : "low"}
+        onLoad={onLoad}
         className={`absolute inset-0 h-full w-full ${className}`}
       />
     </picture>
@@ -108,15 +115,19 @@ function LayerImage({
 /**
  * Photorealistic Earth rising from the bottom of the hero, framed on the U.S. It's a baked image
  * (scripts/render_earth_hero.py), so it costs a download rather than a render, and the page works
- * with it missing. Where motion is welcome, a small WebGL canvas takes over the cloud layer and
+ * with it missing. The clouds wait for the surface to be on screen: they're the heavier file, and
+ * loading both at once makes a slow connection wait for the whole planet. Where motion is welcome, a small WebGL canvas takes over the cloud layer and
  * drifts it. Without WebGL or with reduced motion the still clouds stay. Decorative: everything
  * it shows is stated in the copy, and the pin repeats the address already on the page.
  */
 export function EarthHero({ focus = null, avoidRef }: EarthHeroProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const baseImageRef = useRef<HTMLImageElement>(null);
   const cloudImageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [surfaceReady, setSurfaceReady] = useState(false);
+  const [cloudsLoaded, setCloudsLoaded] = useState(false);
   const [drifting, setDrifting] = useState(false);
 
   const latitude = focus?.latitude ?? null;
@@ -125,6 +136,18 @@ export function EarthHero({ focus = null, avoidRef }: EarthHeroProps) {
     latitude === null || longitude === null ? null : projectToImage(latitude, longitude);
   const pinX = pin?.x ?? null;
   const pinY = pin?.y ?? null;
+
+  useEffect(() => {
+    let cancelled = false;
+    const showClouds = () => {
+      if (!cancelled) setSurfaceReady(true);
+    };
+    // Also settles if the image finished before hydration. Clouds still come if it failed.
+    baseImageRef.current?.decode().then(showClouds, showClouds);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const image = cloudImageRef.current;
@@ -139,8 +162,14 @@ export function EarthHero({ focus = null, avoidRef }: EarthHeroProps) {
       image
         .decode()
         .then(() => {
+          // The file the browser picked, without its srcset (see startCloudDrift).
+          const clouds = new Image();
+          clouds.src = image.currentSrc;
+          return clouds.decode().then(() => clouds);
+        })
+        .then((clouds) => {
           if (cancelled) return;
-          stop = startCloudDrift(canvas, image, {
+          stop = startCloudDrift(canvas, clouds, {
             onReady: () => setDrifting(true),
             onLost: () => setDrifting(false),
           });
@@ -160,7 +189,7 @@ export function EarthHero({ focus = null, avoidRef }: EarthHeroProps) {
       else window.clearTimeout(idle);
       stop?.();
     };
-  }, []);
+  }, [surfaceReady]);
 
   // A pin can be under the copy (the West Coast on a small laptop) or out of frame (Alaska,
   // Hawaii, Puerto Rico), so the Earth slides just far enough to bring it into the clear.
@@ -202,12 +231,17 @@ export function EarthHero({ focus = null, avoidRef }: EarthHeroProps) {
     <div ref={rootRef} className="earth-hero" aria-hidden="true">
       <div ref={stageRef} className="earth-stage" style={STAGE_STYLE}>
         <div className="earth-placeholder" style={PLACEHOLDER_STYLE} />
-        <LayerImage sources={BASE} priority />
-        <LayerImage
-          sources={CLOUDS}
-          imgRef={cloudImageRef}
-          className={drifting ? "invisible" : ""}
-        />
+        <LayerImage sources={BASE} imgRef={baseImageRef} priority />
+        {surfaceReady && (
+          <LayerImage
+            sources={CLOUDS}
+            imgRef={cloudImageRef}
+            onLoad={() => setCloudsLoaded(true)}
+            className={`transition-opacity duration-700 ${cloudsLoaded ? "" : "opacity-0"} ${
+              drifting ? "invisible" : ""
+            }`}
+          />
+        )}
         <canvas
           ref={canvasRef}
           className={`absolute inset-0 h-full w-full ${drifting ? "" : "invisible"}`}
