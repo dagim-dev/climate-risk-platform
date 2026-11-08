@@ -1,6 +1,6 @@
-from typing import Dict, List, Literal, Optional
+from typing import Annotated, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 
 HazardStatus = Literal["ok", "stale", "unavailable"]
 OverallStatus = Literal["complete", "partial", "unavailable"]
@@ -8,24 +8,43 @@ Severity = Literal["Low", "Moderate", "High", "Extreme"]
 Verdict = Literal["Go", "Caution", "Avoid"]
 
 
+# Saved properties accept a full report from the client, so every field is bounded.
+# Free text is trimmed rather than rejected: some of it (source errors) is raw exception
+# text from our own fetchers, and a long message must not fail an analysis.
+def _trimmed(limit: int):
+    def trim(value):
+        return value[:limit] if isinstance(value, str) else value
+
+    return BeforeValidator(trim)
+
+
+ShortText = Annotated[str, _trimmed(64)]
+Text = Annotated[str, _trimmed(500)]
+LongText = Annotated[str, _trimmed(5000)]
+
+MAX_FACTORS = 10
+MAX_SOURCES = 10
+MAX_TREND_POINTS = 20
+
+
 class HazardScore(BaseModel):
     status: HazardStatus = "ok"
     score: Optional[int] = Field(default=None, ge=0, le=100)
     severity: Optional[Severity] = None
-    confidence: str = "Medium"
-    primary_factors: List[str] = Field(default_factory=list)
-    as_of: Optional[str] = None
-    unavailable_reason: Optional[str] = None
+    confidence: ShortText = "Medium"
+    primary_factors: List[Text] = Field(default_factory=list, max_length=MAX_FACTORS)
+    as_of: Optional[ShortText] = None
+    unavailable_reason: Optional[Text] = None
 
 
 class SourceStatus(BaseModel):
     status: HazardStatus
-    as_of: Optional[str] = None
-    error: Optional[str] = None
+    as_of: Optional[ShortText] = None
+    error: Optional[Text] = None
 
 
 class TrendPoint(BaseModel):
-    year: int
+    year: int = Field(ge=1900, le=2200)
     # None when that hazard could not be assessed (nothing to project from).
     flood_score: Optional[int] = Field(None, ge=0, le=100)
     hurricane_score: Optional[int] = Field(None, ge=0, le=100)
@@ -35,9 +54,9 @@ class TrendPoint(BaseModel):
 
 
 class ClimateRiskReport(BaseModel):
-    address: str
-    latitude: float
-    longitude: float
+    address: Annotated[str, _trimmed(300)]
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
     flood_risk: HazardScore
     hurricane_risk: HazardScore
     heat_risk: HazardScore
@@ -45,8 +64,8 @@ class ClimateRiskReport(BaseModel):
     overall_risk_score: Optional[int] = Field(default=None, ge=0, le=100)
     overall_status: OverallStatus = "complete"
     verdict: Optional[Verdict] = None
-    verdict_reason: Optional[str] = None
-    sources: Dict[str, SourceStatus] = Field(default_factory=dict)
-    ai_summary: Optional[str] = None
-    generated_at: str
-    historical_trend: List[TrendPoint] = Field(default_factory=list)
+    verdict_reason: Optional[Text] = None
+    sources: Dict[ShortText, SourceStatus] = Field(default_factory=dict, max_length=MAX_SOURCES)
+    ai_summary: Optional[LongText] = None
+    generated_at: ShortText
+    historical_trend: List[TrendPoint] = Field(default_factory=list, max_length=MAX_TREND_POINTS)

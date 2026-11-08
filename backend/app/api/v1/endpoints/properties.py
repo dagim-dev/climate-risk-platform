@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -68,6 +68,19 @@ async def create_property(
         )
     )
     property_ = existing.scalar_one_or_none()
+
+    if property_ is None:
+        saved_count = await db.scalar(
+            select(func.count()).select_from(Property).where(Property.user_id == current_user.id)
+        )
+        if saved_count >= settings.MAX_SAVED_PROPERTIES:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"You can save up to {settings.MAX_SAVED_PROPERTIES} properties. "
+                    "Delete one to save another."
+                ),
+            )
 
     if property_ is not None:
         property_.latitude = report.latitude
