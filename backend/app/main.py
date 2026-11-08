@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.properties import router as properties_router
 from app.api.v1.endpoints.risk import router as risk_router
+from app.core.body_limit import BodySizeLimitMiddleware
 from app.core.config import settings
 from app.core.sentry import init_sentry
 
@@ -15,6 +16,8 @@ app = FastAPI(
     description="API for address-level climate risk analysis.",
 )
 
+app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.MAX_REQUEST_BODY_BYTES)
+# Added last so it is outermost: even a 413 carries CORS headers the browser can read.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
