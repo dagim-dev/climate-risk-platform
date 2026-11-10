@@ -92,9 +92,13 @@ JSON with a `results` array. Temperature values are in °F when
 
 ## NASA EarthData API (NEX-GDDP-CMIP6)
 
-> **Not used.** The backend does not query NASA. Heat projections use NOAA
-> trend extrapolation. This section is kept as a reference for a future
-> integration only. There is no `NASA_API_KEY` setting.
+> **Not used.** The backend does not query NASA. The 2030/2040/2050 outlook
+> points are linear projections from today's scores at fixed per-hazard yearly
+> rates (`trend_builder.py`). For heat the rate is 0.45 points/year, +0.25 when
+> the NOAA hot-day trend is "increasing" (−0.15 when "decreasing") and +0.15
+> more when the slope exceeds 10 days/decade. The measured slope only picks
+> the rate; it is not extrapolated. This section is kept as a reference for a
+> future integration only. There is no `NASA_API_KEY` setting.
 
 ### Purpose
 
@@ -225,18 +229,32 @@ factors when it was used.
 
 ### How zones are scored
 
-| Zone | Score | Notes |
+| Zone | Base score | Notes |
 |---|---|---|
-| `V`, `VE`, `A`, `AE`, `A99`, `AR*` | 80 (+8 with a real BFE) | 1% annual chance SFHA |
+| `V`, `VE`, `A`, `AE`, `A99`, `AR*` | 80 | 1% annual chance SFHA |
 | `AO`, `AH` | 60 | shallow flooding |
-| `X` with `ZONE_SUBTY` 0.2% or levee | 40 | shaded X; `SFHA_TF` is `F` for these |
+| `X` with `ZONE_SUBTY` 0.2% or levee (or `SFHA_TF` = `T`) | 40 | shaded X; `SFHA_TF` is normally `F` for these |
 | `X` (minimal) | 12 | High confidence on the full NFHL; Low on a mirror miss |
+| any other zone code | 12 | Low confidence |
 | `D`, `AREA NOT INCLUDED`, or no NFHL polygon | unavailable | FEMA has not determined the hazard |
+
+**BFE bonus:** +8 is added to *any* zone whose polygon has `SFHA_TF` = `T` and a
+real `STATIC_BFE` (not the `-9999` sentinel), not only the 1% A/V zones. An `AE`
+with a BFE scores 88, and an `AH` with a BFE scores 68. `AO` usually has no BFE
+(it records depth instead) and stays at 60.
+
+**Undetermined zones and the cache:** zone D, `AREA NOT INCLUDED` and "no polygon
+on the full NFHL" raise `FloodZoneUndetermined`. That skips the mirror, but it is
+a `RuntimeError`, so `fetch_with_cache` handles it like any failed live fetch. If
+the `climate_source_cache` table holds a `fema_nfhl_v2` row for the same 0.01°
+cell (about 1 km) that is under 30 days old, that row is returned as `stale`.
+Such a row could come from a neighbouring address that did have a zone. Only
+without such a row is the hazard reported as unavailable.
 
 ### Known edge cases
 
 - Empty `features[]` outside mapped FEMA areas (common in interior West): reported
-  as unavailable, not as zone X
+  as unavailable, not as zone X (subject to the stale-cache fallback above)
 - Points on zone boundaries may return multiple features — select highest-risk zone
 - `STATIC_BFE` is often null for Zone X, and `-9999` means "no BFE"
 - Preliminary (non-effective) maps live in a separate `Prelim_NFHL` service

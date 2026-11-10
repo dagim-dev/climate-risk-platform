@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     ANALYZE_RATE_LIMIT_PER_MINUTE: int = 10
     ANALYZE_RATE_LIMIT_PER_DAY: int = 100
+    MAX_SAVED_PROPERTIES: int = 200
+    # A full saved report is a few KB; anything far larger is junk or abuse.
+    MAX_REQUEST_BODY_BYTES: int = 256 * 1024
 
     @property
     def cors_origins_list(self) -> list[str]:

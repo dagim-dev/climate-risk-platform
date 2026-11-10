@@ -1,5 +1,7 @@
+import Link from "next/link";
+
 import { PageHero } from "@/components/ui/PageHero";
-import { cardClass } from "@/lib/ui";
+import { cardClass, linkClass } from "@/lib/ui";
 
 const dataSources = [
   {
@@ -52,21 +54,20 @@ export default function AboutPage() {
         <div className="mx-auto max-w-4xl">
           <h2 className="font-display text-4xl text-ink">How scoring works</h2>
           <p className="mt-5 leading-8 text-ink">
-            Flood, hurricane, heat, and wildfire measurements are normalized into
-            0–100 hazard scores. Weighted scores produce an overall result and a
-            Go, Caution, or Avoid verdict.
+            Flood, hurricane, heat, and wildfire measurements are turned into
+            0–100 hazard scores. A weighted average of the hazards that could be
+            assessed gives the overall score, and a Go, Caution, or Avoid verdict
+            is given only when all four were assessed. A hazard whose data is
+            missing is shown as unavailable, never estimated. The 2030–2050 outlook
+            is a simple linear projection from today&apos;s scores.
           </p>
-          <ul className="mt-6 list-disc space-y-3 pl-6 text-ink">
-            <li>
-              Historical trend points are interpolated from the current score.
-              They are not independent analyses of 2000, 2010, or 2020 data.
-            </li>
-            <li>
-              Wildland-urban interface (WUI) and fire-weather labels are inferred
-              from nearby fire counts and lat/lng, not official WUI or NWS fire
-              weather zone maps.
-            </li>
-          </ul>
+          <p className="mt-4 leading-8 text-ink">
+            The{" "}
+            <Link href="/methodology" className={linkClass}>
+              methodology page
+            </Link>{" "}
+            explains each formula and the exact numbers behind it.
+          </p>
         </div>
       </section>
 

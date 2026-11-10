@@ -117,6 +117,14 @@ export default function TermsPage() {
             <h2 className="font-display text-3xl text-ink">
               Methodology and Output Limits
             </h2>
+            <p>
+              How scores, the overall score and verdicts are calculated is described
+              on our{" "}
+              <Link href="/methodology" className={linkClass}>
+                Methodology
+              </Link>{" "}
+              page.
+            </p>
             <ul className="list-disc space-y-3 pl-6">
               <li>
                 Results are based on current scoring logic, public datasets, and
