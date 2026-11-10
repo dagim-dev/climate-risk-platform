@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type { HazardScore, Severity } from "@/types/risk";
 import { HazardBadge, type HazardIconName } from "@/components/ui/HazardIcon";
@@ -20,6 +21,17 @@ function formatAsOf(iso: string): string {
 }
 
 const pillClass = "rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide";
+
+function MethodologyLink({ hazard, icon }: { hazard: string; icon: HazardIconName }) {
+  return (
+    <Link
+      href={`/methodology#${icon}`}
+      className="rounded text-sm font-medium text-accent-ink hover:underline"
+    >
+      How this score works<span className="sr-only"> ({hazard})</span>
+    </Link>
+  );
+}
 
 export function ScoreCard({ hazard, icon, data }: ScoreCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -55,6 +67,9 @@ export function ScoreCard({ hazard, icon, data }: ScoreCardProps) {
         <p className="mt-4 text-xs leading-5 text-ink-muted">
           If a data provider was temporarily unreachable, try again in a few minutes.
         </p>
+        <div className="mt-3">
+          <MethodologyLink hazard={hazard} icon={icon} />
+        </div>
       </article>
     );
   }
@@ -103,24 +118,27 @@ export function ScoreCard({ hazard, icon, data }: ScoreCardProps) {
         </dl>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setExpanded((prev) => !prev)}
-        aria-expanded={expanded}
-        className="mt-5 flex items-center gap-1.5 self-start rounded text-sm font-medium text-accent-ink hover:underline"
-      >
-        <span>{expanded ? "Hide" : "Show"} Risk Factors</span>
-        <svg
-          viewBox="0 0 16 16"
-          className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          aria-hidden="true"
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          aria-expanded={expanded}
+          className="flex items-center gap-1.5 rounded text-sm font-medium text-accent-ink hover:underline"
         >
-          <path d="m4 6 4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
+          <span>{expanded ? "Hide" : "Show"} Risk Factors</span>
+          <svg
+            viewBox="0 0 16 16"
+            className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            aria-hidden="true"
+          >
+            <path d="m4 6 4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <MethodologyLink hazard={hazard} icon={icon} />
+      </div>
 
       {expanded && (
         <ul className="mt-3 list-disc space-y-1 border-t border-line pl-5 pt-3 text-sm text-ink">

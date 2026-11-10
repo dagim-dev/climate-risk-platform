@@ -5,6 +5,7 @@ import { eyebrowClass } from "@/lib/ui";
 
 const footerLinks = [
   { href: "/about", label: "About" },
+  { href: "/methodology", label: "Methodology" },
   { href: "/privacy", label: "Privacy Policy" },
   { href: "/terms", label: "Terms of Service" },
   { href: "/contact", label: "Contact" },
