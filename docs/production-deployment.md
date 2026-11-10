@@ -1,23 +1,23 @@
 # Production Deployment Guide
 
-> **Status: deferred.** This document is scaffolding for a future cloud
-> deploy. The application is **not live**. Local Docker Compose is the
-> supported runtime. `deploy.yml` is `workflow_dispatch` only.
+> **Status: live since v2.1.0 (2026-10-01).** The frontend runs on Vercel at
+> https://climate-risk-platform-seven.vercel.app, the backend on Google Cloud
+> Run and the database on Supabase. `deploy.yml` is `workflow_dispatch` only.
 
 This guide covers provisioning cloud infrastructure, configuring production
-environment variables, and setting up custom domains with SSL — when you
-choose to go live.
+environment variables, and setting up custom domains with SSL.
 
-## Architecture (planned, not live)
+## Architecture
 
-| Component | Provider | Planned URL |
-|-----------|----------|-------------|
-| Frontend (Next.js) | Vercel | `https://climaterisk.io` |
-| Backend (FastAPI) | Google Cloud Run | `https://api.climaterisk.io` |
+| Component | Provider | URL |
+|-----------|----------|-----|
+| Frontend (Next.js) | Vercel | `https://climate-risk-platform-seven.vercel.app` |
+| Backend (FastAPI) | Google Cloud Run | Cloud Run service URL (`run.app`) |
 | Database (PostgreSQL) | Supabase | Managed connection string |
 
-Do not treat those hostnames as a running product. The GitHub Actions
-deploy workflow does **not** run on push to `main`.
+The `climaterisk.io` hostnames used in examples further down are placeholders
+for a custom domain, which is not set up. The GitHub Actions deploy workflow
+does **not** run on push to `main`.
 
 ## PDF generation (regenerated on demand)
 
