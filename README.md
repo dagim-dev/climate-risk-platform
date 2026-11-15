@@ -8,7 +8,7 @@
 
 [![CI](https://github.com/dagim-dev/climate-risk-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/dagim-dev/climate-risk-platform/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.1.0-brightgreen)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.2.0-brightgreen)](CHANGELOG.md)
 [![Python](https://img.shields.io/badge/Python-3.12-blue)](https://www.python.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 
@@ -65,7 +65,7 @@ flowchart LR
 4. **Aggregate** with weights flood 0.30, hurricane 0.30, heat 0.20, wildfire 0.20 over the hazards that were assessed. A single hazard at 70 or above raises "Go" to "Caution".
 5. **Summarize** with GPT-4o-mini. If that call fails, the report is still returned with `ai_summary: null`.
 
-The scoring rules, endpoints and station selection are documented in [`docs/data-sources.md`](docs/data-sources.md).
+The app explains its scoring in plain language on the [methodology page](https://climate-risk-platform-seven.vercel.app/methodology). The scoring rules, endpoints and station selection are documented in [`docs/data-sources.md`](docs/data-sources.md).
 
 ### Known limits
 
@@ -371,6 +371,7 @@ See [`docs/production-deployment.md`](docs/production-deployment.md) for provisi
 | `v1.0.0` | ✅ | AI summaries, printable reports, E2E tests |
 | `v2.0.0` | ✅ | Accounts, saved properties, PDFs, risk outlook |
 | `v2.1.0` | ✅ | First production deploy; data-accuracy and security fixes |
+| `v2.2.0` | ✅ | Methodology page; saved-report size and property-count limits |
 | Next | 🔜 | Validate scores against loss data, climate-model projections, bulk (CSV) analysis |
 
 See [`CHANGELOG.md`](CHANGELOG.md) for what changed in each release and [`TODO.md`](TODO.md) for the task breakdown.
