@@ -2,13 +2,13 @@
 
 # 🌍 Climate Risk Intelligence Platform
 
-### *The Credit Score for Climate Risk*
+**Enter a U.S. address, get flood, hurricane, heat and wildfire risk scores from public government data, in seconds.**
 
-**Instant, address-level climate intelligence for property investors, lenders, and insurers.**
+### [▶ Try the live app](https://climate-risk-platform-seven.vercel.app)
 
 [![CI](https://github.com/dagim-dev/climate-risk-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/dagim-dev/climate-risk-platform/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.0.0-brightgreen)]()
+[![Version](https://img.shields.io/badge/version-2.1.0-brightgreen)](CHANGELOG.md)
 [![Python](https://img.shields.io/badge/Python-3.12-blue)](https://www.python.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 
@@ -16,172 +16,120 @@
 
 ---
 
-## Table of Contents
+## What it does
 
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [Running the Application](#running-the-application)
-- [API Reference](#api-reference)
-- [Project Structure](#project-structure)
-- [Running Tests](#running-tests)
-- [Deployment](#deployment)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [Data Sources](#data-sources)
-- [License](#license)
+Type any U.S. address and the app returns:
 
----
+- Four hazard scores from 0 to 100: **Flood**, **Hurricane**, **Heat** and **Wildfire**, each with a severity, a confidence level and the facts behind it
+- An overall score and a **Go / Caution / Avoid** verdict
+- A plain-English summary written by an LLM from those scores only
+- A risk outlook chart with today's scores and labelled projections for 2030, 2040 and 2050
+- A printable report, plus saved properties and PDF downloads for signed-in users
 
-## Overview
+The product is free. There is no paid tier.
 
-The **Climate Risk Intelligence Platform** helps real estate investors, property developers, and mortgage brokers understand the current and future climate risks for any property address — instantly, and in plain English.
+## What makes it different: it does not guess
 
-Enter any U.S. address and receive:
+Every score comes from a live query to FEMA, NOAA, USFS or NIFC. When a source is down or has no data for a location, the app says so instead of filling the gap:
 
-- Four scored hazard assessments: **Flood**, **Hurricane**, **Heat**, and **Wildfire**
-- A clear **Go / Caution / Avoid** property verdict based on combined risk exposure
-- An **AI-generated risk summary** explaining the biggest threats and their forward-looking trajectory
-- Every claim **traced back to NOAA, FEMA, USFS, and NIFC** source data
+- A hazard with no data is reported as **unavailable** with `score: null`, never as 0 or "low"
+- The overall verdict is **withheld** unless all four hazards were assessed
+- A cached result used during a provider outage is marked **stale** with its date
+- Areas FEMA has not mapped (zone D, or no flood polygon) are unavailable, not "minimal risk"
+- The LLM prompt forbids describing or estimating a hazard that was not assessed
+- The 2030–2050 points are flagged as illustrative linear projections, and no history is back-filled
 
-The platform is designed to turn raw climate data into **actionable business intelligence** — not just a score, but a decision.
+## How it works
 
-> *"Instead of only saying 'high flood risk,' the platform tells you what that means for your deal: insurance tightening, retrofit priority, or deal-breaker."*
+```mermaid
+flowchart LR
+    U[Browser] --> FE[Next.js 16 on Vercel]
+    FE -->|POST /api/v1/analyze| API[FastAPI on Cloud Run]
+    API --> GEO[Google Maps geocoding]
+    API -->|asyncio.gather| SRC
+    subgraph SRC[Four sources, fetched concurrently]
+        F[FEMA NFHL flood zones]
+        H[NOAA IBTrACS storm tracks]
+        T[NOAA GSOY hot-day counts]
+        W[USFS WHP + NIFC fire perimeters]
+    end
+    SRC --> SC[Per-hazard scorers]
+    SC --> AGG[Weighted overall score + verdict]
+    AGG --> AI[OpenAI summary, best-effort]
+    API <--> DB[(PostgreSQL: users, saved reports, source cache)]
+```
 
----
+1. **Geocode** the address with Google Maps. A bad address is a 400; a provider failure is a 502.
+2. **Fetch** the four climate sources concurrently. Each successful payload is saved to a cache table keyed by source and a 0.01° lat/lon cell. If a live fetch fails, the cached copy is used when it is recent enough (24 hours to 30 days depending on the source).
+3. **Score** each hazard with its own scorer (`backend/app/services/scoring/`).
+4. **Aggregate** with weights flood 0.30, hurricane 0.30, heat 0.20, wildfire 0.20 over the hazards that were assessed. A single hazard at 70 or above raises "Go" to "Caution".
+5. **Summarize** with GPT-4o-mini. If that call fails, the report is still returned with `ai_summary: null`.
 
-## Features
+The scoring rules, endpoints and station selection are documented in [`docs/data-sources.md`](docs/data-sources.md).
 
-<br>
+### Known limits
 
-### Phase 1 — Core product `v2.0` (shipped, free)
+- Scores are rule-based and have not yet been validated against loss data such as insurance claims.
+- The 2030–2050 outlook is a simple linear projection, not a climate model.
+- The source cache is a fallback only, so every analysis calls the live providers and takes a few seconds.
+- The rate limiter keeps counts in memory per backend instance.
 
-| Feature | Description |
-|---|---|
-| **Address Search** | Enter any U.S. property address to trigger a full climate risk analysis |
-| **Geocoding** | Automatic address validation and coordinate extraction via Google Maps API |
-| **Four-Hazard Scoring** | Flood, Hurricane, Heat, and Wildfire scores from 0–100, each with a severity label |
-| **Go / Caution / Avoid Verdict** | An aggregate verdict based on weighted combined risk exposure |
-| **AI Risk Summary** | Plain-English explanation generated by GPT-4o-mini, citing primary risk factors |
-| **Source Attribution** | Scores cite NOAA, FEMA, USFS, and NIFC public datasets (NASA is not queried) |
-| **Printable Reports** | Print or save the full risk report as a PDF directly from the browser |
-| **User Accounts** | Email/password and Google OAuth (NextAuth.js). Google sign-in verifies an ID token |
-| **Saved Properties** | Save and revisit past analyses from a personal property dashboard |
-| **Server PDF Reports** | Server-generated PDFs stored on local disk with signed download URLs |
-| **Risk Outlook** | Today's assessed scores with illustrative 2030/2040/2050 linear projections (no back-filled history) |
-
-The product is **free**. There is no paid tier or feature gating.
-
-<br>
-
-### Phase 2 — Enterprise `v3.0` (planned)
-
-| Feature | Description |
-|---|---|
-| **Portfolio Analysis** | Bulk CSV upload for up to 1,000 addresses with background job processing |
-| **Portfolio Heatmaps** | Visual risk concentration map and "Top 10 Worst Exposures" ranking table |
-| **Custom Risk Models** | Adjust hazard weighting per organization to match portfolio exposure profile |
-| **Public REST API** | API key authentication with rate limits for developer integration |
-| **Insurance Estimates** | Annual premium range estimates by hazard score and FEMA flood zone |
-| **White-Label Reports** | Custom branding, logo upload, and board-ready executive summary PDFs |
-| **Portfolio CSV Export** | Exportable risk data for integration into Excel and BI tools |
-
----
-
-## Tech Stack
-
-<br>
+## Tech stack
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Auth.js (NextAuth v5) |
-| **Backend** | Python 3.12, FastAPI, Uvicorn |
-| **Database** | PostgreSQL 16, SQLAlchemy (async), Alembic |
+| **Frontend** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Auth.js (NextAuth v5), Recharts |
+| **Backend** | Python 3.12, FastAPI, async SQLAlchemy, Alembic, httpx |
+| **Database** | PostgreSQL 16 |
 | **AI** | OpenAI GPT-4o-mini |
-| **Authentication** | NextAuth.js |
-| **Data Sources** | NOAA CDO (GSOY), FEMA NFHL (+ Esri Living Atlas mirror), USFS Wildfire Hazard Potential, NIFC wildfire perimeters |
-| **Infrastructure** | Google Cloud Run (backend) and Vercel (frontend) — scaffolding only, not deployed |
+| **Auth** | Email/password and Google sign-in; the backend verifies the Google ID token and issues its own JWT |
+| **Data sources** | FEMA NFHL (with Esri Living Atlas mirror), NOAA IBTrACS, NOAA CDO GSOY, USFS Wildfire Hazard Potential, NIFC fire perimeters |
+| **Hosting** | Vercel (frontend), Google Cloud Run (backend), Supabase (Postgres) |
 | **Monitoring** | Sentry |
-| **CI/CD** | GitHub Actions |
-| **Containerization** | Docker, Docker Compose |
-| **Testing** | Pytest (backend), Playwright (E2E) |
+| **Testing & CI** | Pytest, Playwright, GitHub Actions |
+| **Containers** | Docker, Docker Compose |
 
----
-
-## Getting Started
-
-<br>
+## Getting started
 
 ### Prerequisites
 
-Ensure the following are installed on your machine before proceeding:
-
-- [Node.js](https://nodejs.org/) v20 or higher
+- [Node.js](https://nodejs.org/) 20 or higher
 - [Python](https://www.python.org/) 3.12 or higher
 - [Docker](https://www.docker.com/) and Docker Compose
-- [Git](https://git-scm.com/)
 
-You will also need API keys from these providers before the app will function:
+API keys:
 
-| Provider | Purpose | Link |
+| Provider | Used for | Link |
 |---|---|---|
 | Google Maps Platform | Address geocoding | [console.cloud.google.com](https://console.cloud.google.com/) |
-| OpenAI | AI risk summary generation | [platform.openai.com](https://platform.openai.com/) |
-| NOAA Climate Data Online | Temperature and hurricane data | [ncdc.noaa.gov/cdo-web](https://www.ncdc.noaa.gov/cdo-web/) |
+| OpenAI | Risk summary | [platform.openai.com](https://platform.openai.com/) |
+| NOAA Climate Data Online | Heat data | [ncdc.noaa.gov/cdo-web](https://www.ncdc.noaa.gov/cdo-web/) |
 
-<br>
+FEMA, IBTrACS, USFS and NIFC need no key.
 
-### Installation
-
-**Step 1 — Clone the repository**
+### Install
 
 ```bash
 git clone https://github.com/dagim-dev/climate-risk-platform.git
 cd climate-risk-platform
-```
-
-**Step 2 — Configure frontend environment variables**
-
-```bash
 cp frontend/.env.example frontend/.env.local
-```
-
-Open `frontend/.env.local` and fill in your API keys (see [Environment Variables](#environment-variables) below).
-
-**Step 3 — Configure backend environment variables**
-
-```bash
 cp backend/.env.example backend/.env
 ```
 
-Open `backend/.env` and fill in your API keys.
-
-**Step 4 — Install frontend dependencies**
+Fill in both env files (see below), then either use Docker or install by hand:
 
 ```bash
-cd frontend
-npm install
-cd ..
-```
+cd frontend && npm install && cd ..
 
-**Step 5 — Install backend dependencies**
-
-```bash
 cd backend
 python -m venv .venv
 source .venv/bin/activate     # macOS/Linux
 # .venv\Scripts\activate      # Windows
-pip install -r requirements-dev.txt   # runtime + test dependencies
+pip install -r requirements-dev.txt
 cd ..
 ```
 
----
-
-## Environment Variables
-
-<br>
+## Environment variables
 
 ### Frontend — `frontend/.env.local`
 
@@ -194,8 +142,7 @@ cd ..
 | `AUTH_TRUST_HOST` | `true` when not hosted on Vercel (Docker, Cloud Run) | |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | ✅ for Google sign-in |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | ✅ for Google sign-in |
-
-<br>
+| `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN for error monitoring | |
 
 ### Backend — `backend/.env`
 
@@ -203,32 +150,20 @@ cd ..
 |---|---|:---:|
 | `DATABASE_URL` | PostgreSQL async connection string | ✅ |
 | `GOOGLE_MAPS_API_KEY` | Google Maps Geocoding API key | ✅ |
-| `OPENAI_API_KEY` | OpenAI API key for AI summary generation | ✅ |
-| `NOAA_API_KEY` | NOAA Climate Data Online API token | ✅ for heat data |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID (must match the frontend app) | ✅ for Google sign-in |
-| `JWT_SECRET` | Signing secret for access and PDF tokens. Required in production | ✅ |
+| `OPENAI_API_KEY` | OpenAI API key for the summary | ✅ |
+| `NOAA_API_KEY` | NOAA Climate Data Online token | ✅ for heat data |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID (must match the frontend) | ✅ for Google sign-in |
+| `JWT_SECRET` | Signing secret for access and PDF tokens | ✅ in production |
+| `CORS_ORIGINS` | Comma-separated allowed origins (default `http://localhost:3000`) | |
 | `ENVIRONMENT` | `development` or `production` (`/debug/sentry-test` exists only in `development`) | |
 | `API_BASE_URL` | Public backend URL used in signed PDF links (default `http://localhost:8000`) | ✅ in production |
-| `APP_VERSION` | Reported on `/health` (default `2.0.0`) | |
+| `APP_VERSION` | Reported on `/health` | |
+| `SENTRY_DSN` | Sentry DSN for error monitoring | |
+| `ANALYZE_RATE_LIMIT_PER_MINUTE` / `ANALYZE_RATE_LIMIT_PER_DAY` | Per-IP limits on `/analyze` (default 10 and 100) | |
 
-**Example `backend/.env`:**
+## Running the application
 
-```env
-DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/climate_risk
-GOOGLE_MAPS_API_KEY=AIza...
-OPENAI_API_KEY=sk-...
-NOAA_API_KEY=your_token_here
-```
-
----
-
-## Running the Application
-
-<br>
-
-### Option A — Docker Compose (Recommended)
-
-Start all services — database, backend, and frontend — with a single command:
+### Option A — Docker Compose
 
 ```bash
 docker-compose up --build
@@ -238,213 +173,162 @@ docker-compose up --build
 |---|---|
 | Frontend (Next.js) | http://localhost:3000 |
 | Backend API (FastAPI) | http://localhost:8000 |
-| Interactive API Docs | http://localhost:8000/docs |
+| Interactive API docs | http://localhost:8000/docs |
 | PostgreSQL | localhost:5432 |
 
-The backend container applies database migrations (`alembic upgrade head`) on start.
-Inside Compose the backend reaches Postgres at `db:5432`; this overrides the
-`localhost` URL in `backend/.env`, which is for running outside Docker.
+The backend container runs `alembic upgrade head` on start. Inside Compose the backend reaches Postgres at `db:5432`, which overrides the `localhost` URL in `backend/.env`.
 
-<br>
+### Option B — Manual
 
-### Option B — Manual (Without Docker)
-
-**Start the database** — Ensure PostgreSQL is running locally, then:
+With PostgreSQL running locally:
 
 ```bash
 cd backend
 source .venv/bin/activate
 alembic upgrade head
-```
-
-**Start the backend** (in one terminal):
-
-```bash
-cd backend
-source .venv/bin/activate
 uvicorn app.main:app --reload --port 8000
 ```
 
-**Start the frontend** (in a second terminal):
+In a second terminal:
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to use the application.
+Open [http://localhost:3000](http://localhost:3000).
 
----
+## API reference
 
-## API Reference
+Swagger UI is served at `/docs` on the backend.
 
-Interactive API documentation (Swagger UI) is available at `http://localhost:8000/docs` when the backend is running.
-
-<br>
-
-### `GET /health`
-
-Returns the API health status and current version.
-
-**Response `200 OK`:**
-```json
-{
-  "status": "ok",
-  "version": "2.0.0"
-}
-```
-
-<br>
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| `GET` | `/health` | Public | Status and version |
+| `POST` | `/api/v1/analyze` | Public, rate limited | Full four-hazard analysis for an address |
+| `POST` | `/api/v1/auth/register` | Public | Create an account |
+| `POST` | `/api/v1/auth/login` | Public | Email/password sign-in |
+| `POST` | `/api/v1/auth/oauth` | Google ID token | Google sign-in |
+| `GET` | `/api/v1/auth/me` | JWT | Current user |
+| `GET` / `POST` | `/api/v1/properties` | JWT | List or save properties |
+| `DELETE` | `/api/v1/properties/{id}` | JWT | Delete a saved property |
+| `POST` | `/api/v1/properties/{id}/pdf` | JWT | Get a signed, expiring PDF link |
+| `GET` | `/api/v1/properties/{id}/pdf/download` | Signed token | Download the PDF |
 
 ### `POST /api/v1/analyze`
 
-Runs a full four-hazard climate risk analysis for a given property address.
-Public, but rate limited per client IP (10/minute, 100/day by default; see
-`ANALYZE_RATE_LIMIT_PER_MINUTE` / `ANALYZE_RATE_LIMIT_PER_DAY`). Over the limit it
-returns `429` with a `Retry-After` header. `address` is capped at 300 characters.
+Rate limited per client IP (10 per minute and 100 per day by default). Over the limit it returns `429` with a `Retry-After` header. `address` is capped at 300 characters.
 
-**Request body:**
+**Request:**
+
 ```json
-{
-  "address": "123 Main Street, Miami, FL"
-}
+{ "address": "1600 Pennsylvania Avenue NW, Washington, DC" }
 ```
 
-**Response `200 OK`:**
+**Response `200 OK`** (real output from 2026-11-10; `ai_summary` shortened, the other three hazards and sources have the same shape as the ones shown):
+
 ```json
 {
-  "address": "123 Main St, Miami, FL 33101, USA",
-  "latitude": 25.7617,
-  "longitude": -80.1918,
+  "address": "1600 Pennsylvania Ave NW, Washington, DC 20500, USA",
+  "latitude": 38.8975862,
+  "longitude": -77.0366871,
   "flood_risk": {
-    "score": 82,
-    "severity": "High",
-    "confidence": "High",
-    "primary_factors": ["FEMA AE Flood Zone", "Coastal proximity < 0.5mi", "Low elevation"]
-  },
-  "hurricane_risk": {
-    "score": 91,
-    "severity": "Extreme",
-    "confidence": "High",
-    "primary_factors": ["Direct Cat 4/5 landfall history", "Coastal path exposure", "No natural barriers"]
-  },
-  "heat_risk": {
-    "score": 65,
-    "severity": "Moderate",
-    "confidence": "Medium",
-    "primary_factors": ["Urban heat island effect", "Rising baseline temperatures"]
-  },
-  "wildfire_risk": {
+    "status": "ok",
     "score": 12,
     "severity": "Low",
     "confidence": "High",
-    "primary_factors": ["Low fire-prone vegetation density"]
+    "primary_factors": ["FEMA flood zone X (minimal flood hazard)"],
+    "as_of": "2026-11-10T00:10:48.112983+00:00",
+    "unavailable_reason": null
   },
-  "overall_risk_score": 74,
-  "verdict": "Avoid",
-  "ai_summary": "This Miami property carries extreme cumulative climate risk driven primarily by hurricane exposure and coastal flood vulnerability...",
-  "generated_at": "2025-06-01T14:32:00Z"
+  "heat_risk": {
+    "status": "ok",
+    "score": 44,
+    "severity": "Moderate",
+    "confidence": "High",
+    "primary_factors": [
+      "39 days per year at or above 90°F (NOAA)",
+      "Urban heat island effect in major metro area (+8 points)",
+      "Hot days rising by about 6 per decade over 1996–2025 (NOAA)"
+    ],
+    "as_of": "2026-11-10T00:10:48.963243+00:00",
+    "unavailable_reason": null
+  },
+  "hurricane_risk": { "status": "ok", "score": 6, "severity": "Low", "...": "..." },
+  "wildfire_risk": { "status": "ok", "score": 3, "severity": "Low", "...": "..." },
+  "overall_risk_score": 15,
+  "overall_status": "complete",
+  "verdict": "Go",
+  "verdict_reason": null,
+  "sources": {
+    "fema_nfhl": { "status": "ok", "as_of": "2026-11-10T00:10:48.112983+00:00", "error": null },
+    "ibtracs": { "status": "ok", "...": "..." },
+    "noaa_heat": { "status": "ok", "...": "..." },
+    "wfigs": { "status": "ok", "...": "..." }
+  },
+  "ai_summary": "The climate risk assessment for 1600 Pennsylvania Ave NW ... The single biggest risk driver among the assessed hazards is heat ...",
+  "generated_at": "2026-11-10T00:10:49.069374+00:00",
+  "historical_trend": [
+    { "year": 2026, "flood_score": 12, "hurricane_score": 6, "heat_score": 44, "wildfire_score": 3, "is_projection": false },
+    { "year": 2030, "flood_score": 12, "hurricane_score": 7, "heat_score": 47, "wildfire_score": 3, "is_projection": true },
+    { "year": 2040, "flood_score": 13, "hurricane_score": 10, "heat_score": 54, "wildfire_score": 5, "is_projection": true },
+    { "year": 2050, "flood_score": 14, "hurricane_score": 12, "heat_score": 61, "wildfire_score": 6, "is_projection": true }
+  ]
 }
 ```
 
-**Error `400`:** Address could not be geocoded.
+Field notes:
 
-**Error `500`:** Risk analysis pipeline failure (check Sentry for details).
+- `status` on a hazard or source is `ok`, `stale` (cached copy used during an outage) or `unavailable`.
+- An unavailable hazard has `score: null`, `severity: null` and an `unavailable_reason`.
+- `overall_status` is `complete`, `partial` or `unavailable`. `verdict` is `null` unless it is `complete`.
+- `ai_summary` is `null` when the LLM call fails.
 
----
+**Errors:** `400` address could not be geocoded · `429` rate limited · `502` geocoding provider unavailable · `500` analysis failed.
 
-## Project Structure
+## Project structure
 
 ```
 climate-risk-platform/
-│
-├── frontend/                        # Next.js application
+├── frontend/                     # Next.js application
 │   ├── src/
-│   │   ├── app/                     # Next.js App Router pages
-│   │   │   ├── (site)/              # Header/Footer shell
-│   │   │   │   ├── page.tsx         # Home / address search + dashboard
-│   │   │   │   ├── about/page.tsx
-│   │   │   │   ├── pricing/page.tsx
-│   │   │   │   ├── properties/page.tsx
-│   │   │   │   ├── sign-in/page.tsx
-│   │   │   │   ├── sign-up/page.tsx
-│   │   │   │   ├── privacy/page.tsx
-│   │   │   │   ├── terms/page.tsx
-│   │   │   │   └── contact/page.tsx
-│   │   │   └── report/page.tsx      # Printable report view
-│   │   ├── components/
-│   │   │   ├── dashboard/           # Risk dashboard, outlook chart, PDF
-│   │   │   ├── layout/              # Header, Footer
-│   │   │   ├── auth/                # NextAuth session + nav
-│   │   │   └── ui/
-│   │   │       └── AddressSearch.tsx
-│   │   ├── lib/
-│   │   │   └── api-client.ts
-│   │   ├── auth.ts                  # NextAuth config
-│   │   └── types/
-│   │       └── risk.ts
-│   └── tests/
-│       └── e2e/                     # Playwright end-to-end tests
+│   │   ├── app/
+│   │   │   ├── (site)/           # Pages that share the Header/Footer layout
+│   │   │   └── report/           # Standalone printable report
+│   │   ├── components/           # dashboard/, layout/, auth/, ui/
+│   │   ├── lib/                  # api-client.ts, report-storage.ts, ...
+│   │   ├── types/risk.ts         # Mirrors backend/app/schemas/risk.py
+│   │   ├── auth.config.ts        # Auth.js providers and callbacks
+│   │   └── proxy.ts              # Route protection (Next 16 middleware)
+│   └── tests/e2e/                # Playwright tests (backend mocked)
 │
-├── backend/                         # FastAPI application
+├── backend/                      # FastAPI application
 │   ├── app/
-│   │   ├── api/
-│   │   │   └── v1/endpoints/        # Route handlers (one file per domain)
-│   │   │       ├── risk.py
-│   │   │       ├── auth.py
-│   │   │       └── properties.py
-│   │   ├── core/
-│   │   │   ├── config.py            # Pydantic Settings / environment config
-│   │   │   └── database.py          # SQLAlchemy async session factory
-│   │   ├── models/                  # SQLAlchemy ORM models
-│   │   ├── schemas/                 # Pydantic request and response schemas
-│   │   │   ├── address.py
-│   │   │   └── risk.py
-│   │   ├── services/
-│   │   │   ├── ai/                  # AI summary generation
-│   │   │   │   ├── prompt_builder.py
-│   │   │   │   └── summary_generator.py
-│   │   │   ├── climate/             # External climate data integrations
-│   │   │   │   ├── flood_data.py
-│   │   │   │   ├── hurricane_data.py
-│   │   │   │   ├── heat_data.py
-│   │   │   │   └── wildfire_data.py
-│   │   │   └── scoring/             # Hazard scoring algorithms
-│   │   │       ├── flood_scorer.py
-│   │   │       ├── hurricane_scorer.py
-│   │   │       ├── heat_scorer.py
-│   │   │       ├── wildfire_scorer.py
-│   │   │       ├── helpers.py
-│   │   │       └── aggregator.py
-│   │   └── main.py                  # FastAPI app entrypoint
-│   ├── alembic/                     # Database migration files
-│   ├── tests/                       # Pytest unit tests
-│   ├── .env.example
-│   ├── requirements.txt             # runtime dependencies (used by the Docker image)
-│   └── requirements-dev.txt         # + pytest, aiosqlite for tests
+│   │   ├── api/v1/endpoints/     # risk.py, auth.py, properties.py
+│   │   ├── core/                 # config, database, security, rate limit, Sentry
+│   │   ├── models/               # SQLAlchemy models
+│   │   ├── schemas/              # Pydantic request/response schemas
+│   │   └── services/
+│   │       ├── geocoding.py
+│   │       ├── climate/          # One fetcher per source + source_cache.py
+│   │       ├── scoring/          # One scorer per hazard, aggregator, trend_builder
+│   │       ├── ai/               # Prompt builder and summary generator
+│   │       └── pdf/              # On-demand PDF rendering
+│   ├── alembic/                  # Database migrations
+│   └── tests/                    # Pytest suite
 │
-├── docs/                            # Architecture diagrams and documentation
-│   ├── data-sources.md              # External API documentation and rate limits
-│   └── design-system.md            # UI color palette and component conventions
-│
-├── scripts/                         # Utility and deployment scripts
-├── .github/
-│   └── workflows/
-│       ├── ci.yml                   # CI: test and lint on every PR
-│       └── deploy.yml               # CD scaffolding (manual trigger only)
+├── docs/                         # data-sources, design-system, production-deployment
+├── infrastructure/               # Cloud Run service definition, env template
+├── scripts/                      # Provisioning scripts
+├── .github/workflows/            # ci.yml, deploy.yml
 ├── docker-compose.yml
-├── README.md
 ├── CHANGELOG.md
 └── TODO.md
 ```
 
----
+## Running tests
 
-## Running Tests
-
-<br>
-
-### Backend Unit Tests
+Backend (about 120 tests; uses a temporary SQLite database and mocked HTTP, so no Postgres or API keys are needed):
 
 ```bash
 cd backend
@@ -452,135 +336,64 @@ source .venv/bin/activate
 pytest tests/ -v --cov=app --cov-report=term-missing
 ```
 
-Tests use a temporary SQLite database and mocked HTTP; no Postgres or API keys are needed.
-
-<br>
-
-### Frontend End-to-End Tests (Playwright)
+Frontend end-to-end (30 Playwright tests; the backend is mocked):
 
 ```bash
 cd frontend
-npx playwright test --project=chromium   # what CI runs; the backend is mocked
-
-# Run with visible browser for debugging:
-npx playwright test --headed
-
-# View the HTML report:
-npx playwright show-report
+npx playwright test --project=chromium
 ```
 
-<br>
-
-### Run All Tests (CI Mode)
-
-This mirrors what GitHub Actions runs on every pull request:
-
-```bash
-# Backend
-cd backend && pytest tests/ -v
-
-# Frontend
-cd ../frontend && npm run lint && npx tsc --noEmit && npx playwright test --project=chromium
-```
-
----
+CI runs the backend tests, `npm run lint`, `npx tsc --noEmit` and the Playwright suite on every push and pull request to `develop` and `main`.
 
 ## Deployment
 
-> **Note:** Production deployment (Vercel + Cloud Run) is **deferred**. The app
-> runs fully on localhost via Docker Compose. Production scaffolding (scripts,
-> `deploy.yml`, and `docs/production-deployment.md`) is ready when you provision
-> cloud infrastructure.
+The app is live:
 
-<br>
-
-### Local Development (Current)
-
-| Service | URL |
+| Component | Host |
 |---|---|
-| Frontend | http://localhost:3000 |
-| Backend API | http://localhost:8000 |
-| API Docs | http://localhost:8000/docs |
+| Frontend | Vercel — https://climate-risk-platform-seven.vercel.app |
+| Backend | Google Cloud Run |
+| Database | Supabase (PostgreSQL) |
 
-See [Running the Application](#running-the-application) above.
+- Releases are tagged on `main`. `deploy.yml` is triggered manually (`workflow_dispatch`); it does not run on push.
+- Database migrations are applied by hand with `alembic upgrade head`.
+- The backend allows unauthenticated requests because `/analyze` is public; it is rate limited per IP.
+- PDFs are rendered on each download and never written to disk, because Cloud Run's filesystem is ephemeral.
+- Production requires a real `JWT_SECRET`; the app refuses to start without one.
 
-<br>
-
-### Production (Deferred)
-
-Cloud deploy is **not live**. `deploy.yml` is manual (`workflow_dispatch`)
-scaffolding. Do not assume Vercel or Cloud Run URLs exist.
-
-When you provision infrastructure:
-
-- Frontend target: Vercel
-- Backend target: Google Cloud Run (`--allow-unauthenticated` because analyze is public; it is rate limited per IP)
-- Production requires a real `JWT_SECRET`
-- PDFs are local-disk only until object storage is added
-
-See [`docs/production-deployment.md`](docs/production-deployment.md).
-
----
+See [`docs/production-deployment.md`](docs/production-deployment.md) for provisioning steps.
 
 ## Roadmap
 
-| Version | Status | Key Milestone |
+| Version | Status | Milestone |
 |---|---|---|
-| `v0.1-alpha` | ✅ Complete | Monorepo scaffolding, Docker, CI pipeline |
-| `v0.2-alpha` | ✅ Complete | Geocoding, climate data integrations, risk scoring engine |
-| `v0.3-alpha` | ✅ Complete | Full frontend: address search, dashboard, verdict badge |
-| `v1.0.0` | ✅ Complete | AI summaries, printable reports, E2E tests (local-ready) |
-| `v2.0.0` | ✅ Complete | Free product: auth, saved properties, PDFs, risk outlook |
-| `v3.0.0` | 🔜 Planned | Portfolio analysis, public API, custom models, insurance estimates |
+| `v0.1-alpha` – `v0.3-alpha` | ✅ | Scaffolding, CI, geocoding, data integrations, scoring engine, frontend |
+| `v1.0.0` | ✅ | AI summaries, printable reports, E2E tests |
+| `v2.0.0` | ✅ | Accounts, saved properties, PDFs, risk outlook |
+| `v2.1.0` | ✅ | First production deploy; data-accuracy and security fixes |
+| Next | 🔜 | Validate scores against loss data, climate-model projections, bulk (CSV) analysis |
 
-See [`TODO.md`](TODO.md) for the full granular task breakdown and Git workflow for each version.
-
----
+See [`CHANGELOG.md`](CHANGELOG.md) for what changed in each release and [`TODO.md`](TODO.md) for the task breakdown.
 
 ## Contributing
 
-Contributions, bug reports, and feature suggestions are welcome. Please follow the branching and commit conventions outlined in [`TODO.md`](TODO.md).
+1. Cut a branch from `develop`: `git checkout -b feature/your-feature-name`
+2. Write your changes and tests
+3. Commit using Conventional Commits: `feat(scope): description`
+4. Open a pull request targeting `develop` and make sure CI passes
 
-1. Fork the repository
-2. Cut your feature branch from `develop`:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-3. Write your changes and tests
-4. Commit using Conventional Commits:
-   ```bash
-   git commit -m "feat(scope): your feature description"
-   ```
-5. Push to your fork and open a Pull Request targeting `develop`
-6. Ensure all CI checks pass before requesting a review
+## Data sources
 
----
-
-## Data Sources
-
-Climate risk data is sourced from the following government and scientific agencies:
-
-| Source | Data Provided | Link |
+| Source | Used for | Link |
 |---|---|---|
-| **NOAA Climate Data Online** | Temperature extremes, hurricane track history | [ncdc.noaa.gov](https://www.ncdc.noaa.gov/cdo-web/) |
-| **FEMA National Flood Hazard Layer** | Flood zone designations, base flood elevations | [fema.gov/flood-maps](https://www.fema.gov/flood-maps) |
+| **FEMA National Flood Hazard Layer** | Flood zone at the property | [fema.gov/flood-maps](https://www.fema.gov/flood-maps) |
+| **NOAA IBTrACS** | Storm tracks within 100 km over the last 50 years | [ncei.noaa.gov/products/international-best-track-archive](https://www.ncei.noaa.gov/products/international-best-track-archive) |
+| **NOAA Climate Data Online (GSOY)** | Days per year at or above 90°F, and their trend | [ncdc.noaa.gov/cdo-web](https://www.ncdc.noaa.gov/cdo-web/) |
 | **USFS Wildfire Hazard Potential (2023)** | Wildfire hazard class of the land around the property | [wildfirerisk.org](https://wildfirerisk.org/) |
-| **NIFC fire perimeters** | Historical wildfire perimeters within 50 km | [data-nifc.opendata.arcgis.com](https://data-nifc.opendata.arcgis.com/) |
+| **NIFC fire perimeters** | Wildfire perimeters within 50 km over the last 20 years | [data-nifc.opendata.arcgis.com](https://data-nifc.opendata.arcgis.com/) |
 
-NASA EarthData is documented in `docs/data-sources.md` but is **not queried**.
-
-Only today's scores are assessed; the outlook chart adds illustrative linear projections and no back-filled history. Flood zones come from FEMA NFHL, falling back to Esri's Living Atlas mirror of the same layer when `hazards.fema.gov` is unreachable (areas without a FEMA map are reported as unavailable, not as minimal risk). Heat uses NOAA GSOY annual counts of days at or above 90°F from a representative nearby station. The overall Go / Caution / Avoid verdict is withheld unless all four hazards were assessed. See [`docs/data-sources.md`](docs/data-sources.md).
-
----
+Flood zones fall back to Esri's Living Atlas mirror of the FEMA layer when `hazards.fema.gov` is unreachable. NASA EarthData is described in `docs/data-sources.md` but is not queried.
 
 ## License
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for full details.
-
----
-
-<div align="center">
-
-Built with the goal of making climate risk understandable, actionable, and accessible.
-
-</div>
+MIT. See [LICENSE](LICENSE).
