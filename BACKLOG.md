@@ -94,4 +94,4 @@ Format: `- [ ] Short title` followed by indented notes (why, where, decision).
     a linear projection.
   - Done: hard-coded page from the scorer constants; linked from the footer,
     every score card, Terms and About (About's stale scoring bullets replaced).
-    Playwright test in `tests/e2e/methodology.spec.ts`. Not yet merged.
+    Playwright test in `tests/e2e/methodology.spec.ts`. Merged into `develop` in ff6e68d.
