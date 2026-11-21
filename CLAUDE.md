@@ -69,4 +69,6 @@ Other backend pieces:
 
 - `develop` is the integration branch. Cut a `feature/*` or `fix/*` branch from `develop` and merge locally back into `develop`. Don't open PRs unless necessary. `main` is release-only and tagged.
 - Commit messages follow Conventional Commits: `type(scope): description`, with types `feat`, `fix`, `chore`, `ci`, `test`, `docs` and `refactor`.
+- Changelog in the same branch: before merging a branch into `develop`, add its entry under `## [Unreleased]` in `CHANGELOG.md` (Keep a Changelog headings: Added, Changed, Fixed, Security, Removed). Write it for users, not developers. Skip changes that are only tests, CI or internal refactors. At release time, rename `[Unreleased]` to `[x.y.z] - YYYY-MM-DD` and start a new empty `[Unreleased]`.
+- Backlog loop (`BACKLOG.md`): before coding a backlog item, replace its `Decision: TBD` with how it will be built. As the last commit on the branch, before merging, move the item from Open to Done as `- [x] Title (YYYY-MM-DD, branch-name)` with a short `Done:` note, so the backlog update merges with the code. New ideas go at the top of Open.
 - Production deploy (Vercel + Cloud Run) is scaffolding only (`deploy.yml` is manual). Don't assume deployed URLs exist.
