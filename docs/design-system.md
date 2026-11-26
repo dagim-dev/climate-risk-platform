@@ -39,7 +39,6 @@ The tokens are CSS variables on `:root`. Dark values apply under `@media screen 
 | `focus` | `#0284c7` | `#7dd3fc` | Focus ring (`.on-dark` switches it to light sky) |
 | `risk-*-ink` / `risk-*-soft` / `risk-*-fill` | | | Severity text, pill background, and ring or bar fill |
 | `warn-ink` / `warn-soft` / `warn-line` | | | The "unavailable" state, which is never a severity |
-| `chart-*` | | | Recharts grid, axis and hazard lines (passed as `var(--chart-…)`) |
 
 ## Rules
 
