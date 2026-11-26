@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 
 import { AuthNav } from "@/components/auth/AuthNav";
 import { Logo } from "@/components/layout/Logo";
+import { RoadmapPanel } from "@/components/layout/RoadmapPanel";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -33,14 +34,17 @@ export function Header() {
   return (
     <header className="on-dark sticky top-0 z-40 border-b border-white/10 bg-space-950 text-white">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link
-          href="/"
-          aria-label="ClimateRisk home"
-          className="rounded-md"
-          onClick={() => setMenuOpen(false)}
-        >
-          <Logo />
-        </Link>
+        <div className="flex min-w-0 items-center gap-2.5 sm:gap-4">
+          <Link
+            href="/"
+            aria-label="ClimateRisk home"
+            className="shrink-0 rounded-md"
+            onClick={() => setMenuOpen(false)}
+          >
+            <Logo />
+          </Link>
+          <RoadmapPanel onOpen={() => setMenuOpen(false)} />
+        </div>
 
         <nav className="hidden h-full items-center gap-8 sm:flex" aria-label="Main">
           {navLinks.map(({ href, label }) => {

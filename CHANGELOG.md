@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- A "Next up" button in the header that shows upcoming features
+
 ### Removed
 
 - The Risk Outlook chart is gone from the dashboard and printable report. Its

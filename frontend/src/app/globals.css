@@ -124,6 +124,32 @@ body {
   outline-color: #7dd3fc;
 }
 
+/* A themed surface inside dark chrome (the header's roadmap panel) goes back to the theme ring. */
+.on-surface :focus-visible {
+  outline-color: var(--focus);
+}
+
+/* Header "Next up" pill: a soft accent glow that breathes out from the dot. */
+.next-up-dot {
+  animation: next-up-pulse 2.6s ease-out infinite;
+}
+
+@keyframes next-up-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(56 189 248 / 0.55);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 6px rgb(56 189 248 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .next-up-dot {
+    animation: none;
+  }
+}
+
 /* Deep-space backdrop: three tiled star layers plus a soft blue nebula, no images. */
 .starfield {
   background-color: var(--color-space-950);
