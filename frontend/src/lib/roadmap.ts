@@ -48,6 +48,7 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
     ],
     howItWorks: [
       "We start from real counts at a nearby weather station, then add the change NASA’s climate models expect by 2050.",
+      "The models come from CMIP6, the worldwide set of climate models behind the UN’s IPCC climate reports. NASA adjusts them to local detail.",
       "The range shows where most models agree. It’s an estimate, not a forecast.",
     ],
     sources: [
