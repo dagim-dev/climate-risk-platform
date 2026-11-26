@@ -59,7 +59,10 @@ for (const { name, viewport } of VIEWPORTS) {
         await expect(dialog.locator(":focus")).toHaveCount(1);
       }
 
-      await page.mouse.click(viewport.width - 24, viewport.height * 0.3);
+      // Just below the header at the right edge: beside the desktop popover and above the phone
+      // sheet, however tall the roadmap copy makes the panel.
+      const header = (await page.getByRole("banner").boundingBox())!;
+      await page.mouse.click(viewport.width - 24, header.y + header.height + 8);
       await expect(dialog).toBeHidden();
       await expect(trigger).toBeFocused();
     });
