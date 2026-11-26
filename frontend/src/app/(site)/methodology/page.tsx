@@ -426,6 +426,11 @@ export default function MethodologyPage() {
             "The big-city bonus uses a fixed list of 15 metro areas. Other hot urban areas don’t get it.",
           ]}
         />
+        {/* Roadmap: "Real 2050 heat outlook" (lib/roadmap.ts, BACKLOG.md). Remove once it ships. */}
+        <p>
+          The heat score describes today only. A projection of hot days around 2050, based on
+          climate models, is in the works.
+        </p>
       </Section>
 
       <Section id="wildfire" title="Wildfire">
