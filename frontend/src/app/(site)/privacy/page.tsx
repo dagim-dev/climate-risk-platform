@@ -173,9 +173,8 @@ export default function PrivacyPage() {
               <li>
                 <strong>Saved properties.</strong> If you are signed in and choose to
                 save a property, we store the formatted address, its map coordinates,
-                the full report (hazard scores, verdict, trend projections, and the
-                AI summary, if one was generated), and when it was saved and last
-                updated.
+                the full report (hazard scores, verdict, and the AI summary, if one
+                was generated), and when it was saved and last updated.
               </li>
               <li>
                 <strong>Messages you send us.</strong> If you email us, we receive

@@ -13,8 +13,7 @@
     "next": "^16.4.5",
     "next-auth": "^5.0.0-beta.32",
     "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "recharts": "^3.10.1"
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

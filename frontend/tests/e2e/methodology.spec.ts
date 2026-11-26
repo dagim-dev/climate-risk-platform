@@ -9,7 +9,6 @@ const SECTION_HEADINGS = [
   "Overall score",
   "Verdict",
   "Missing and cached data",
-  "2030–2050 outlook",
   "AI summary",
 ];
 
@@ -23,6 +22,7 @@ test.describe("Methodology page", () => {
     for (const name of SECTION_HEADINGS) {
       await expect(page.getByRole("heading", { level: 2, name, exact: true })).toBeVisible();
     }
+    await expect(page.getByRole("heading", { name: /outlook/i })).toHaveCount(0);
   });
 
   test("footer link opens the methodology page", async ({ page }) => {

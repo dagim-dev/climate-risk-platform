@@ -23,7 +23,6 @@ Type any U.S. address and the app returns:
 - Four hazard scores from 0 to 100: **Flood**, **Hurricane**, **Heat** and **Wildfire**, each with a severity, a confidence level and the facts behind it
 - An overall score and a **Go / Caution / Avoid** verdict
 - A plain-English summary written by an LLM from those scores only
-- A risk outlook chart with today's scores and labelled projections for 2030, 2040 and 2050
 - A printable report, plus saved properties and PDF downloads for signed-in users
 
 The product is free. There is no paid tier.
@@ -37,7 +36,6 @@ Every score comes from a live query to FEMA, NOAA, USFS or NIFC. When a source i
 - A cached result used during a provider outage is marked **stale** with its date
 - Areas FEMA has not mapped (zone D, or no flood polygon) are unavailable, not "minimal risk"
 - The LLM prompt forbids describing or estimating a hazard that was not assessed
-- The 2030–2050 points are flagged as illustrative linear projections, and no history is back-filled
 
 ## How it works
 
@@ -70,7 +68,7 @@ The app explains its scoring in plain language on the [methodology page](https:/
 ### Known limits
 
 - Scores are rule-based and have not yet been validated against loss data such as insurance claims.
-- The 2030–2050 outlook is a simple linear projection, not a climate model.
+- Scores describe today only. Future climate projections are not shown yet.
 - The source cache is a fallback only, so every analysis calls the live providers and takes a few seconds.
 - The rate limiter keeps counts in memory per backend instance.
 
@@ -78,7 +76,7 @@ The app explains its scoring in plain language on the [methodology page](https:/
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Auth.js (NextAuth v5), Recharts |
+| **Frontend** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Auth.js (NextAuth v5) |
 | **Backend** | Python 3.12, FastAPI, async SQLAlchemy, Alembic, httpx |
 | **Database** | PostgreSQL 16 |
 | **AI** | OpenAI GPT-4o-mini |
@@ -267,13 +265,7 @@ Rate limited per client IP (10 per minute and 100 per day by default). Over the 
     "wfigs": { "status": "ok", "...": "..." }
   },
   "ai_summary": "The climate risk assessment for 1600 Pennsylvania Ave NW ... The single biggest risk driver among the assessed hazards is heat ...",
-  "generated_at": "2026-11-10T00:10:49.069374+00:00",
-  "historical_trend": [
-    { "year": 2026, "flood_score": 12, "hurricane_score": 6, "heat_score": 44, "wildfire_score": 3, "is_projection": false },
-    { "year": 2030, "flood_score": 12, "hurricane_score": 7, "heat_score": 47, "wildfire_score": 3, "is_projection": true },
-    { "year": 2040, "flood_score": 13, "hurricane_score": 10, "heat_score": 54, "wildfire_score": 5, "is_projection": true },
-    { "year": 2050, "flood_score": 14, "hurricane_score": 12, "heat_score": 61, "wildfire_score": 6, "is_projection": true }
-  ]
+  "generated_at": "2026-11-10T00:10:49.069374+00:00"
 }
 ```
 
@@ -311,7 +303,7 @@ climate-risk-platform/
 │   │   └── services/
 │   │       ├── geocoding.py
 │   │       ├── climate/          # One fetcher per source + source_cache.py
-│   │       ├── scoring/          # One scorer per hazard, aggregator, trend_builder
+│   │       ├── scoring/          # One scorer per hazard, aggregator
 │   │       ├── ai/               # Prompt builder and summary generator
 │   │       └── pdf/              # On-demand PDF rendering
 │   ├── alembic/                  # Database migrations
@@ -369,7 +361,7 @@ See [`docs/production-deployment.md`](docs/production-deployment.md) for provisi
 |---|---|---|
 | `v0.1-alpha` – `v0.3-alpha` | ✅ | Scaffolding, CI, geocoding, data integrations, scoring engine, frontend |
 | `v1.0.0` | ✅ | AI summaries, printable reports, E2E tests |
-| `v2.0.0` | ✅ | Accounts, saved properties, PDFs, risk outlook |
+| `v2.0.0` | ✅ | Accounts, saved properties, PDFs |
 | `v2.1.0` | ✅ | First production deploy; data-accuracy and security fixes |
 | `v2.2.0` | ✅ | Methodology page; saved-report size and property-count limits |
 | Next | 🔜 | Validate scores against loss data, climate-model projections, bulk (CSV) analysis |

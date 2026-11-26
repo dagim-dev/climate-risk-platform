@@ -45,13 +45,6 @@
   --warn-ink: #92400e;
   --warn-soft: #fffbeb;
   --warn-line: #f2c46d;
-
-  --chart-grid: #e2e8f0;
-  --chart-axis: #64748b;
-  --chart-flood: #2563eb;
-  --chart-hurricane: #7c3aed;
-  --chart-heat: #dc2626;
-  --chart-wildfire: #ea580c;
 }
 
 @media screen and (prefers-color-scheme: dark) {
@@ -81,13 +74,6 @@
     --warn-ink: #fcd34d;
     --warn-soft: rgb(245 158 11 / 0.08);
     --warn-line: rgb(245 158 11 / 0.4);
-
-    --chart-grid: #1c2d4a;
-    --chart-axis: #8fa1bb;
-    --chart-flood: #60a5fa;
-    --chart-hurricane: #a78bfa;
-    --chart-heat: #f87171;
-    --chart-wildfire: #fb923c;
   }
 }
 

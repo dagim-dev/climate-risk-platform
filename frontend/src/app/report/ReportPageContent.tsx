@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { VerdictBadge, unavailableHazardNames } from "@/components/dashboard/VerdictBadge";
-import { RiskTrendChart } from "@/components/dashboard/RiskTrendChart";
 import { Logo } from "@/components/layout/Logo";
 import { HazardBadge, type HazardIconName } from "@/components/ui/HazardIcon";
 import { ScoreRing } from "@/components/ui/ScoreRing";
@@ -145,12 +144,6 @@ export function ReportPageContent() {
             <ReportScoreRow key={field} label={label} icon={icon} data={report[field]} />
           ))}
         </section>
-
-        {report.historical_trend && report.historical_trend.length > 0 && (
-          <section className="report-section no-print">
-            <RiskTrendChart trend={report.historical_trend} />
-          </section>
-        )}
 
         {report.ai_summary && (
           <section className="report-section space-y-2">

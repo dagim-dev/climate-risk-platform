@@ -92,13 +92,10 @@ JSON with a `results` array. Temperature values are in °F when
 
 ## NASA EarthData API (NEX-GDDP-CMIP6)
 
-> **Not used.** The backend does not query NASA. The 2030/2040/2050 outlook
-> points are linear projections from today's scores at fixed per-hazard yearly
-> rates (`trend_builder.py`). For heat the rate is 0.45 points/year, +0.25 when
-> the NOAA hot-day trend is "increasing" (−0.15 when "decreasing") and +0.15
-> more when the slope exceeds 10 days/decade. The measured slope only picks
-> the rate; it is not extrapolated. This section is kept as a reference for a
-> future integration only. There is no `NASA_API_KEY` setting.
+> **Not used.** The backend does not query NASA, and reports do not show
+> future projections yet: every score describes today. This section is kept
+> as a reference for a future integration only. There is no `NASA_API_KEY`
+> setting.
 
 ### Purpose
 
@@ -390,7 +387,7 @@ Derive Saffir-Simpson category from `USA_WIND` (knots):
 | Hurricane | IBTrACS FeatureServer | None | `hurricane_data.py` |
 | Heat | NOAA CDO GSOY `DX90` | `token` header | `heat_data.py` |
 | Wildfire | USFS WHP 2023 + WFIGS Fire Perimeter History | None | `wildfire_data.py` |
-| Projections | Not queried (NASA NEX-GDDP documented only) | — | outlook points are linear projections from today's scores (`trend_builder.py`), labelled as such |
+| Projections | Not queried (NASA NEX-GDDP documented only) | — | not shown yet; reports cover today only |
 
 All spatial ArcGIS queries share the pattern: point geometry (`lon,lat`),
 `esriSpatialRelIntersects`, optional `distance` + `units` for radius searches.

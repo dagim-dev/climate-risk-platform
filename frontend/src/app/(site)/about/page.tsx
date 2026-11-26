@@ -58,8 +58,7 @@ export default function AboutPage() {
             0–100 hazard scores. A weighted average of the hazards that could be
             assessed gives the overall score, and a Go, Caution, or Avoid verdict
             is given only when all four were assessed. A hazard whose data is
-            missing is shown as unavailable, never estimated. The 2030–2050 outlook
-            is a simple linear projection from today&apos;s scores.
+            missing is shown as unavailable, never estimated.
           </p>
           <p className="mt-4 leading-8 text-ink">
             The{" "}

@@ -49,7 +49,6 @@ def test_long_source_error_is_trimmed_not_rejected():
 @pytest.mark.parametrize(
     "override",
     [
-        {"historical_trend": [{"year": 2030}] * 21},
         {"latitude": 500},
         {"flood_risk": {"score": 10, "primary_factors": ["f"] * 11}},
     ],

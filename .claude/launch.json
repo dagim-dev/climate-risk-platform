@@ -1,0 +1,41 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd backend && .venv/bin/uvicorn app.main:app --port 8000"
+      ],
+      "port": 8000
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd frontend && npm run dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "frontend-design",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd frontend && E2E_AUTH_BYPASS=true AUTH_SECRET=design-preview-secret AUTH_URL=http://localhost:3000 npm run dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "frontend-prod",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd frontend && E2E_AUTH_BYPASS=true AUTH_SECRET=design-preview-secret AUTH_URL=http://localhost:3100 npx next start -p 3100"
+      ],
+      "port": 3100
+    }
+  ]
+}

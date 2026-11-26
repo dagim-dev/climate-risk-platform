@@ -131,9 +131,9 @@ export default function TermsPage() {
                 supporting service integrations available at the time of the request.
               </li>
               <li>
-                Only today&apos;s scores are assessed. The 2030, 2040, and 2050 points
-                in the trend chart are illustrative linear projections from those
-                scores, not outputs of a climate model, and no past scores are shown.
+                Scores describe each hazard as assessed today from observed data.
+                They are not forecasts, and reports do not include future climate
+                projections.
               </li>
               <li>
                 Wildfire scores are derived from U.S. Forest Service Wildfire Hazard

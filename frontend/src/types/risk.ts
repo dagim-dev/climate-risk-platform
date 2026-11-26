@@ -19,16 +19,6 @@ export interface SourceStatus {
   error?: string | null;
 }
 
-export interface TrendPoint {
-  year: number;
-  // null when that hazard could not be assessed.
-  flood_score: number | null;
-  hurricane_score: number | null;
-  heat_score: number | null;
-  wildfire_score: number | null;
-  is_projection: boolean;
-}
-
 export interface ClimateRiskReport {
   address: string;
   latitude: number;
@@ -44,5 +34,4 @@ export interface ClimateRiskReport {
   sources?: Record<string, SourceStatus>;
   ai_summary?: string | null;
   generated_at: string;
-  historical_trend?: TrendPoint[];
 }
