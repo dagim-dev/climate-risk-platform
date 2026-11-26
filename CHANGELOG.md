@@ -2,6 +2,61 @@
 
 ## [Unreleased]
 
+### Added
+
+- A "Next up" button in the header that shows upcoming features
+
+### Removed
+
+- The Risk Outlook chart is gone from the dashboard and printable report. Its
+  2030–2050 points were straight-line estimates from today's scores, not
+  climate projections. Reports you saved earlier still open and download as PDFs.
+
+### Changed
+
+- README rewritten around the live app (data-honesty rules, architecture,
+  endpoint list, known limits); `docs/production-deployment.md` marked live
+
+## [2.2.0] - 2026-11-09
+
+### Added
+
+- Methodology page explaining how each hazard is scored, linked from the footer,
+  score cards, terms and about pages
+- Homepage redesign: theme tokens, fonts and dark mode; shared UI primitives and
+  hazard icons; restyled dashboard, printable report, saved properties, sign-in
+  and content pages
+- U.S.-framed Earth hero built from NASA Blue Marble and NOAA GOES imagery, with
+  drifting clouds and an address pin; lighter images are served to phones
+- Clickable example addresses by hazard (Hurricane, Flood, Wildfire, Heat, Lower
+  risk) and a Google Maps link for finding an address
+- "Warming up" message when a search is slow; the home page pings `/health` so an
+  idle Cloud Run instance starts early
+- ClimateRisk pin logo in the header, footer, report, PDF and app icons
+
+### Security
+
+- `/analyze` is rate limited per IP (10 per minute, 100 per day, configurable)
+  and addresses are capped at 300 characters; the unused public `/geocode`
+  endpoint was removed and Cloud Run is capped at 3 instances
+- Saved reports are size-checked (text trimmed, lists and coordinates
+  range-checked), each user can save up to 200 properties, and request bodies
+  over 256 KB get a 413
+- Backend dependencies upgraded to clear every pip-audit finding; `python-jose`
+  replaced by PyJWT (same HS256 tokens, existing sessions keep working)
+- Next.js upgraded to 16.4.5 and `@sentry/nextjs` to 10.78, past critical image
+  optimizer advisories
+
+### Changed
+
+- Privacy policy rewritten and terms finalized for Google OAuth review
+- `docs/data-sources.md` updated to match flood scoring, zone D caching and the
+  heat outlook in code
+
+### Removed
+
+- `cobe` globe dependency
+
 ## [2.1.0] - 2026-10-01
 
 ### Fixed

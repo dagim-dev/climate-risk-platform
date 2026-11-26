@@ -26,35 +26,32 @@ test.describe("Dashboard regressions", () => {
     await expect(page.getByRole("heading", { name: mockReport.address })).toBeVisible();
   });
 
-  test("outlook chart labels projections and hides unassessed hazards", async ({ page }) => {
+  test("a report that still carries old outlook points shows no outlook chart", async ({ page }) => {
+    // Reports saved before the Risk Outlook was removed still contain historical_trend.
     await page.route("**/api/v1/analyze", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           ...mockReport,
-          overall_status: "partial",
-          verdict: null,
-          flood_risk: {
-            status: "unavailable",
-            score: null,
-            severity: null,
-            confidence: "None",
-            primary_factors: [],
-            unavailable_reason: "No digital FEMA flood map covers this location",
-          },
-          historical_trend: mockReport.historical_trend!.map((point) => ({ ...point, flood_score: null })),
+          historical_trend: [
+            { year: 2026, flood_score: 72, hurricane_score: 85, heat_score: 68, wildfire_score: 22, is_projection: false },
+            { year: 2050, flood_score: 79, hurricane_score: 95, heat_score: 85, wildfire_score: 25, is_projection: true },
+          ],
         }),
       });
     });
 
     await page.goto("/");
-    await analyze(page, "1 Rural Rd, Somewhere, MT");
+    await analyze(page, "123 Main St, Miami, FL");
+    await expect(page.getByRole("heading", { name: mockReport.address })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Risk Outlook" })).toHaveCount(0);
+    await expect(page.getByText(/projection/i)).toHaveCount(0);
 
-    await expect(page.getByRole("heading", { name: "Risk Outlook" })).toBeVisible();
-    await expect(page.getByText(/linear\s+projections from today/)).toBeVisible();
-    await expect(page.getByText("Hazards that could not be assessed are not shown.", { exact: false })).toBeVisible();
-    await expect(page.getByText(/interpolated/)).toHaveCount(0);
+    await page.getByRole("button", { name: "View Full Report" }).click();
+    await expect(page).toHaveURL("/report");
+    await expect(page.getByRole("heading", { name: "AI Risk Summary" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Risk Outlook" })).toHaveCount(0);
   });
 
   test("score with missing severity is labelled from its score, not 'Moderate'", async ({ page }) => {

@@ -1,6 +1,6 @@
 from typing import Annotated, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 HazardStatus = Literal["ok", "stale", "unavailable"]
 OverallStatus = Literal["complete", "partial", "unavailable"]
@@ -24,7 +24,6 @@ LongText = Annotated[str, _trimmed(5000)]
 
 MAX_FACTORS = 10
 MAX_SOURCES = 10
-MAX_TREND_POINTS = 20
 
 
 class HazardScore(BaseModel):
@@ -43,17 +42,11 @@ class SourceStatus(BaseModel):
     error: Optional[Text] = None
 
 
-class TrendPoint(BaseModel):
-    year: int = Field(ge=1900, le=2200)
-    # None when that hazard could not be assessed (nothing to project from).
-    flood_score: Optional[int] = Field(None, ge=0, le=100)
-    hurricane_score: Optional[int] = Field(None, ge=0, le=100)
-    heat_score: Optional[int] = Field(None, ge=0, le=100)
-    wildfire_score: Optional[int] = Field(None, ge=0, le=100)
-    is_projection: bool = False
-
-
 class ClimateRiskReport(BaseModel):
+    # Saved properties keep the report JSON as it was when saved, so older rows carry
+    # fields that no longer exist (e.g. the removed "historical_trend"). Drop them on load.
+    model_config = ConfigDict(extra="ignore")
+
     address: Annotated[str, _trimmed(300)]
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
@@ -68,4 +61,3 @@ class ClimateRiskReport(BaseModel):
     sources: Dict[ShortText, SourceStatus] = Field(default_factory=dict, max_length=MAX_SOURCES)
     ai_summary: Optional[LongText] = None
     generated_at: ShortText
-    historical_trend: List[TrendPoint] = Field(default_factory=list, max_length=MAX_TREND_POINTS)
