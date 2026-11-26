@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Removed
+
+- The Risk Outlook chart is gone from the dashboard and printable report. Its
+  2030–2050 points were straight-line estimates from today's scores, not
+  climate projections. Reports you saved earlier still open and download as PDFs.
+
 ### Changed
 
 - README rewritten around the live app (data-honesty rules, architecture,
