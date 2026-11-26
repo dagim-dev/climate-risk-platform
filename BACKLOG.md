@@ -7,6 +7,34 @@ Format: `- [ ] Short title` followed by indented notes (why, where, decision).
 
 ## Open
 
+- [ ] Real 2050 heat outlook
+  - Why: the old outlook chart was a straight-line extension of past hot days
+    and was removed. Replace it with real climate-model projections, shown as
+    a range. Already announced in the header "Next up" panel
+    (`frontend/src/lib/roadmap.ts`), so keep the two in sync.
+  - Where: a new source module in `backend/app/services/climate/` (plus an
+    offline precompute script and storage table), the scoring pipeline
+    (`services/scoring/`, `schemas/risk.py` and `frontend/src/types/risk.ts`),
+    the dashboard heat card, `docs/data-sources.md` and the methodology page.
+  - Notes: NASA NEX-GDDP-CMIP6 (35 CMIP6 models, daily BCSD, 0.25°, daily
+    `tasmax`/`tasmin`, historical 1950–2014, SSPs 2015–2100, public S3 bucket
+    `nex-gddp-cmip6`; Thrasher et al. 2022, doi:10.1038/s41597-022-01393-4).
+    Scenarios SSP2-4.5 and SSP5-8.5. Delta method: per model, days/yr with
+    `tasmax` ≥ 32.2°C in 1995–2014 vs 2041–2060; add each change to the heat
+    station's observed GSOY `DX90` mean over 1995–2014; report the median and
+    10th–90th percentile across models. Warm nights: same with `tasmin` ≥
+    23.9°C, but GSOY has no matching count, so the observed baseline needs
+    GHCN-Daily `TMIN` (the slow path `heat_data.py` moved away from). Not every
+    model has every variable and scenario (paper's Table 2). Precompute for the
+    U.S. offline. If the station or model data is missing, return unavailable;
+    never fall back to the old straight line. The NASA section in
+    `docs/data-sources.md` (S3 paths, 0–360° longitude, Kelvin, v2.0 file
+    suffixes) is the starting point.
+  - Decision: TBD (store results per 0.25° grid cell or per station; which
+    models, all available or a vetted subset; whether warm nights ship in the
+    first version; whether the "today" figure is the heat score's 30-year
+    average or the 1995–2014 baseline the delta is added to).
+
 - [ ] Use the source cache as a real cache
   - Why: the cache table is only read when a live fetch fails, so every search
     waits on four slow government APIs. Flood zones and 50-year storm history
