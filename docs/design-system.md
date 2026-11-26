@@ -46,7 +46,7 @@ The tokens are CSS variables on `:root`. Dark values apply under `@media screen 
 2. **Severity color comes only from `severity`** (or `severityFromScore`) through `lib/risk-styles.ts`. Don't reuse risk colors for unrelated UI states. The one exception is error text, which uses `risk-high-ink`.
 3. **Contrast.** Every text token pair passes WCAG AA (4.5:1) on `surface` and `canvas` in both themes. Ring and bar fills pass 3:1. When you add a pair, check it in both themes.
 4. **Focus.** Don't remove outlines. The global `:focus-visible` ring applies everywhere, and anything placed on dark chrome sits inside an `.on-dark` ancestor.
-5. **Motion.** `prefers-reduced-motion` turns off transitions. The Earth's clouds then stay still, it moves to a pin instantly instead of sliding, and the pin doesn't pulse.
+5. **Motion.** `prefers-reduced-motion` turns off transitions and stops the "Next up" dot's pulse. The Earth's clouds then stay still, it moves to a pin instantly instead of sliding, and the pin doesn't pulse.
 
 ## Components and helpers
 
@@ -62,5 +62,6 @@ The tokens are CSS variables on `:root`. Dark values apply under `@media screen 
   - Images are `src/assets/earth/{base,clouds}-{1200,1800,2500,4200,5200}.avif`, plus WebP at 1200 and 2500 for browsers without AVIF. Phones stop at 1800, which is 2x at that size: larger files add over a second to the largest paint on a slow phone. The clouds only start loading once the surface has decoded, for the same reason. If you change the Earth's size, update `SIZES` in `EarthHero.tsx` along with `--earth-radius`.
   - To change the view, edit the camera and lighting in `frontend/scripts/render_earth_hero.py` and rerun it. It rewrites the images and `view.json`.
   - Sources: terrain from NASA Blue Marble Next Generation (August 2004, 240 px/degree tiles), elevation from NASA's Blue Marble topography (GEBCO_08, 120 px/degree tiles), clouds from NOAA GOES-East and GOES-West Band 2 (29 August 2026 at 20:00Z, 114 px/degree) via NASA GIBS. GIBS only keeps the last few months of GOES, so that time will disappear; the script's docstring says what to do then. It's an illustration composited from those, not a live or current view of the weather. NASA and NOAA imagery is generally free of U.S. copyright, including for commercial use, as long as it doesn't use their logos or imply their endorsement. They and GEBCO ask for credit, so the footer carries one. Keep that credit if the image stays.
+- `components/layout/RoadmapPanel` is the header's "Next up" pill and the roadmap it opens: a popover under the pill from `sm` up, a bottom sheet on phones. Items live in `lib/roadmap.ts`, so adding one needs no component change. Status chips use accent and neutral tokens, never risk colors. The panel is a themed surface inside the dark header, so it carries `.on-surface`, which puts the focus ring back to `--focus`.
 - `components/auth/AuthShell` is the sign-in and sign-up backdrop and card.
 - `.starfield` (in `globals.css`) is a pure-CSS star background.
